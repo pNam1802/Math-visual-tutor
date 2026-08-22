@@ -263,39 +263,64 @@ function generateFallbackMathResponse(userPrompt: string) {
     };
   }
 
-  // Default to Quadratic / Algebra equation
+  // Branch 5: Quadratic / Parabola / Polynomial equation
+  if (
+    promptLower.includes('bậc hai') || 
+    promptLower.includes('bậc 2') || 
+    promptLower.includes('parabol') || 
+    promptLower.includes('quadratic') ||
+    promptLower.includes('tam thức') ||
+    promptLower.includes('phương trình') ||
+    promptLower.includes('hàm số') ||
+    promptLower.includes('x^2') ||
+    promptLower.includes('ax^2') ||
+    promptLower.includes('delta')
+  ) {
+    return {
+      is_math_question: true,
+      topic: 'equation',
+      concept: 'quadratic_equation',
+      title: 'Khảo sát Hàm số & Phương trình Bậc hai',
+      summary: 'Mô phỏng đồ thị parabol f(x) = ax² + bx + c, toạ độ đỉnh V và nghiệm giao với trục hoành.',
+      parameters: [
+        { key: 'a', value: 1, min: -3, max: 3, step: 0.5, name: 'Hệ số a', unit: '' },
+        { key: 'b', value: -5, min: -8, max: 8, step: 0.5, name: 'Hệ số b', unit: '' },
+        { key: 'c', value: 6, min: -10, max: 10, step: 1, name: 'Hệ số c', unit: '' }
+      ],
+      latex: 'ax^2 + bx + c = 0 \\iff x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}',
+      steps: [
+        {
+          title: '1. Xác định hệ số và hình dạng parabol',
+          explanation: 'Hệ số a quyết định bề lõm: a > 0 parabol ngửa lên (cực tiểu), a < 0 parabol úp xuống (cực đại).',
+          formula: 'f(x) = 1x^2 - 5x + 6',
+          visualHighlight: 'Đường cong Parabol trên mặt phẳng toạ độ Oxy'
+        },
+        {
+          title: '2. Tính toạ độ đỉnh Parabol',
+          explanation: 'Đỉnh V nằm tại trục đối xứng x = -b/(2a) = 5/2 = 2.5, y = f(2.5) = -0.25.',
+          formula: 'V\\left(-\\frac{b}{2a}, -\\frac{\\Delta}{4a}\\right) = V(2.5, -0.25)',
+          visualHighlight: 'Điểm vàng nổi bật ở đáy parabol'
+        },
+        {
+          title: '3. Biệt thức Delta và nghiệm phương trình',
+          explanation: 'Δ = (-5)² - 4(1)(6) = 25 - 24 = 1 > 0 nên đồ thị cắt trục hoành tại 2 điểm phân biệt x₁ = 2 và x₂ = 3.',
+          formula: 'x_1 = 2.0, \\quad x_2 = 3.0',
+          visualHighlight: 'Hai chấm xanh lá trên trục hoành Ox'
+        }
+      ]
+    };
+  }
+
+  // If prompt does not match any mathematical concept above
   return {
-    is_math_question: true,
-    topic: 'equation',
-    concept: 'quadratic_equation',
-    title: 'Khảo sát Hàm số & Phương trình Bậc hai',
-    summary: 'Mô phỏng đồ thị parabol f(x) = ax² + bx + c, toạ độ đỉnh V và nghiệm giao với trục hoành.',
-    parameters: [
-      { key: 'a', value: 1, min: -3, max: 3, step: 0.5, name: 'Hệ số a', unit: '' },
-      { key: 'b', value: -5, min: -8, max: 8, step: 0.5, name: 'Hệ số b', unit: '' },
-      { key: 'c', value: 6, min: -10, max: 10, step: 1, name: 'Hệ số c', unit: '' }
-    ],
-    latex: 'ax^2 + bx + c = 0 \\iff x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}',
-    steps: [
-      {
-        title: '1. Xác định hệ số và hình dạng parabol',
-        explanation: 'Hệ số a quyết định bề lõm: a > 0 parabol ngửa lên (cực tiểu), a < 0 parabol úp xuống (cực đại).',
-        formula: 'f(x) = 1x^2 - 5x + 6',
-        visualHighlight: 'Đường cong Parabol trên mặt phẳng toạ độ Oxy'
-      },
-      {
-        title: '2. Tính toạ độ đỉnh Parabol',
-        explanation: 'Đỉnh V nằm tại trục đối xứng x = -b/(2a) = 5/2 = 2.5, y = f(2.5) = -0.25.',
-        formula: 'V\\left(-\\frac{b}{2a}, -\\frac{\\Delta}{4a}\\right) = V(2.5, -0.25)',
-        visualHighlight: 'Điểm vàng nổi bật ở đáy parabol'
-      },
-      {
-        title: '3. Biệt thức Delta và nghiệm phương trình',
-        explanation: 'Δ = (-5)² - 4(1)(6) = 25 - 24 = 1 > 0 nên đồ thị cắt trục hoành tại 2 điểm phân biệt x₁ = 2 và x₂ = 3.',
-        formula: 'x_1 = 2.0, \\quad x_2 = 3.0',
-        visualHighlight: 'Hai chấm xanh lá trên trục hoành Ox'
-      }
-    ]
+    is_math_question: false,
+    topic: '',
+    concept: 'unsupported',
+    title: 'Câu hỏi không thuộc phạm vi toán học',
+    summary: 'Nội dung không thuộc các bài toán hoặc khái niệm toán học được hỗ trợ.',
+    parameters: [],
+    latex: '',
+    steps: []
   };
 }
 
@@ -361,11 +386,13 @@ Provide interactive sliders in the "parameters" array with realistic initial val
 Write a clear LaTeX string for the core mathematical expression.
 Provide 3 to 4 sequential, numbered explanation steps in Vietnamese with mathematical reasoning and visual highlights.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.7-flash',
-      contents: promptText,
-      config: {
-        systemInstruction: `You are MathVisual Tutor, an elite visual mathematics tutor inspired by 3Blue1Brown (Grant Sanderson).
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: 'gemini-3.1-flash-lite',
+        contents: promptText,
+        config: {
+          systemInstruction: `You are MathVisual Tutor, an elite visual mathematics tutor inspired by 3Blue1Brown (Grant Sanderson).
 Your goal is to parse math queries and return pure structured JSON adhering to the strict schema.
 
 SECURITY & INPUT INTEGRITY DIRECTIVE:
@@ -385,71 +412,124 @@ You MUST ONLY assign one of these 5 concepts if the query matches them:
 If the user asks about ANY other mathematical topic (e.g. matrices, integrals, differential equations, Fourier transform, probability, complex numbers, graph theory, etc.), you MUST set concept to "unsupported".
 
 All explanations and titles must be in accurate, encouraging, academic Vietnamese.`,
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            is_math_question: {
-              type: Type.BOOLEAN,
-              description: 'Whether this query is a mathematical question or concept.'
-            },
-            topic: {
-              type: Type.STRING,
-              enum: ['geometry_2d', 'geometry_3d', 'algebra', 'trigonometry', 'vector', 'calculus', 'equation'],
-              description: 'The assigned visualization category.'
-            },
-            concept: {
-              type: Type.STRING,
-              description: 'Identifier for the concept. Must be "quadratic_equation", "unit_circle", "derivative_tangent", "vector_3d_projection", "circle_area_decomposition", or "unsupported".'
-            },
-            title: {
-              type: Type.STRING,
-              description: 'Concise title in Vietnamese.'
-            },
-            summary: {
-              type: Type.STRING,
-              description: 'Brief summary in Vietnamese.'
-            },
-            parameters: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  key: { type: Type.STRING, description: 'Parameter key e.g. a, b, c, angleDeg, x0, deltaX, vx, vy, vz, radius, slices' },
-                  value: { type: Type.NUMBER, description: 'Default numeric value' },
-                  min: { type: Type.NUMBER, description: 'Minimum slider limit' },
-                  max: { type: Type.NUMBER, description: 'Maximum slider limit' },
-                  step: { type: Type.NUMBER, description: 'Step increment' },
-                  name: { type: Type.STRING, description: 'Vietnamese label' },
-                  unit: { type: Type.STRING, description: 'Unit if any' }
-                },
-                required: ['key', 'value', 'min', 'max', 'step', 'name']
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              is_math_question: {
+                type: Type.BOOLEAN,
+                description: 'Whether this query is a mathematical question or concept.'
               },
-              description: 'Interactive parameters list.'
-            },
-            latex: {
-              type: Type.STRING,
-              description: 'Main formula in standard LaTeX notation.'
-            },
-            steps: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  title: { type: Type.STRING, description: 'Step title in Vietnamese' },
-                  explanation: { type: Type.STRING, description: 'Detailed step reasoning in Vietnamese' },
-                  formula: { type: Type.STRING, description: 'Step formula in LaTeX' },
-                  visualHighlight: { type: Type.STRING, description: 'Visual connection tip in Vietnamese' }
-                },
-                required: ['title', 'explanation']
+              topic: {
+                type: Type.STRING,
+                enum: ['geometry_2d', 'geometry_3d', 'algebra', 'trigonometry', 'vector', 'calculus', 'equation'],
+                description: 'The assigned visualization category.'
               },
-              description: 'Sequential breakdown steps.'
-            }
-          },
-          required: ['is_math_question', 'topic', 'concept', 'parameters', 'latex', 'steps']
+              concept: {
+                type: Type.STRING,
+                enum: ['quadratic_equation', 'unit_circle', 'derivative_tangent', 'vector_3d_projection', 'circle_area_decomposition', 'unsupported'],
+                description: 'Identifier for the concept. Must strictly be one of: "quadratic_equation", "unit_circle", "derivative_tangent", "vector_3d_projection", "circle_area_decomposition", or "unsupported".'
+              },
+              title: {
+                type: Type.STRING,
+                description: 'Concise title in Vietnamese.'
+              },
+              summary: {
+                type: Type.STRING,
+                description: 'Brief summary in Vietnamese.'
+              },
+              parameters: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    key: { type: Type.STRING, description: 'Parameter key e.g. a, b, c, angleDeg, x0, deltaX, vx, vy, vz, radius, slices' },
+                    value: { type: Type.NUMBER, description: 'Default numeric value' },
+                    min: { type: Type.NUMBER, description: 'Minimum slider limit' },
+                    max: { type: Type.NUMBER, description: 'Maximum slider limit' },
+                    step: { type: Type.NUMBER, description: 'Step increment' },
+                    name: { type: Type.STRING, description: 'Vietnamese label' },
+                    unit: { type: Type.STRING, description: 'Unit if any' }
+                  },
+                  required: ['key', 'value', 'min', 'max', 'step', 'name']
+                },
+                description: 'Interactive parameters list.'
+              },
+              latex: {
+                type: Type.STRING,
+                description: 'Main formula in standard LaTeX notation.'
+              },
+              steps: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    title: { type: Type.STRING, description: 'Step title in Vietnamese' },
+                    explanation: { type: Type.STRING, description: 'Detailed step reasoning in Vietnamese' },
+                    formula: { type: Type.STRING, description: 'Step formula in LaTeX' },
+                    visualHighlight: { type: Type.STRING, description: 'Visual connection tip in Vietnamese' }
+                  },
+                  required: ['title', 'explanation']
+                },
+                description: 'Sequential breakdown steps.'
+              }
+            },
+            required: ['is_math_question', 'topic', 'concept', 'parameters', 'latex', 'steps']
+          }
         }
-      }
-    });
+      });
+    } catch (modelErr) {
+      // Fallback model if primary model hits rate limit or unavailability
+      response = await ai.models.generateContent({
+        model: 'gemini-3.6-flash',
+        contents: promptText,
+        config: {
+          systemInstruction: `You are MathVisual Tutor, an elite visual mathematics tutor inspired by 3Blue1Brown (Grant Sanderson). Return structured JSON adhering to the strict schema.`,
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              is_math_question: { type: Type.BOOLEAN },
+              topic: { type: Type.STRING, enum: ['geometry_2d', 'geometry_3d', 'algebra', 'trigonometry', 'vector', 'calculus', 'equation'] },
+              concept: { type: Type.STRING, enum: ['quadratic_equation', 'unit_circle', 'derivative_tangent', 'vector_3d_projection', 'circle_area_decomposition', 'unsupported'] },
+              title: { type: Type.STRING },
+              summary: { type: Type.STRING },
+              parameters: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    key: { type: Type.STRING },
+                    value: { type: Type.NUMBER },
+                    min: { type: Type.NUMBER },
+                    max: { type: Type.NUMBER },
+                    step: { type: Type.NUMBER },
+                    name: { type: Type.STRING },
+                    unit: { type: Type.STRING }
+                  },
+                  required: ['key', 'value', 'min', 'max', 'step', 'name']
+                }
+              },
+              latex: { type: Type.STRING },
+              steps: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    title: { type: Type.STRING },
+                    explanation: { type: Type.STRING },
+                    formula: { type: Type.STRING },
+                    visualHighlight: { type: Type.STRING }
+                  },
+                  required: ['title', 'explanation']
+                }
+              }
+            },
+            required: ['is_math_question', 'topic', 'concept', 'parameters', 'latex', 'steps']
+          }
+        }
+      });
+    }
 
     const textOutput = response.text;
     if (!textOutput) {
@@ -518,6 +598,61 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', engine: 'MathVisual Gemini Server' });
 });
 
+// Diagnostic route
+app.get('/api/diag', async (req, res) => {
+  const hasApiKey = !!process.env.GEMINI_API_KEY;
+  const keyLength = (process.env.GEMINI_API_KEY || '').length;
+  const envKeysMatching = Object.keys(process.env).filter(k => /GEMINI|API|KEY/i.test(k));
+  const model = 'gemini-3.1-flash-lite';
+  const nodeEnv = process.env.NODE_ENV;
+
+  const diagData: {
+    hasApiKey: boolean;
+    keyLength: number;
+    envKeysMatching: string[];
+    model: string;
+    nodeEnv: string | undefined;
+    callOk?: boolean;
+    callError?: string | null;
+    latencyMs?: number;
+  } = {
+    hasApiKey,
+    keyLength,
+    envKeysMatching,
+    model,
+    nodeEnv
+  };
+
+  if (!hasApiKey) {
+    diagData.callOk = false;
+    diagData.callError = 'GEMINI_API_KEY is not defined in process.env';
+    diagData.latencyMs = 0;
+    res.json(diagData);
+    return;
+  }
+
+  const startTime = Date.now();
+  try {
+    const ai = getGenAI();
+    if (!ai) {
+      throw new Error('GoogleGenAI instance could not be initialized');
+    }
+    await ai.models.generateContent({
+      model,
+      contents: '2+2=?'
+    });
+    diagData.callOk = true;
+    diagData.callError = null;
+    diagData.latencyMs = Date.now() - startTime;
+  } catch (err: any) {
+    diagData.callOk = false;
+    diagData.callError = err?.message || String(err);
+    diagData.latencyMs = Date.now() - startTime;
+  }
+
+  res.json(diagData);
+});
+
 // Production and Vite Dev middleware
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
@@ -533,6 +668,12 @@ async function startServer() {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
+
+  console.log('[BOOT] GEMINI_API_KEY present:', !!process.env.GEMINI_API_KEY);
+  console.log('[BOOT] key length:', (process.env.GEMINI_API_KEY || '').length);
+  console.log('[BOOT] NODE_ENV:', process.env.NODE_ENV);
+  console.log('[BOOT] env keys chua chu GEMINI hoac API:',
+    Object.keys(process.env).filter(k => /GEMINI|API|KEY/i.test(k)));
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`MathVisual Tutor server running at http://0.0.0.0:${PORT}`);
