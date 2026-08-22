@@ -132,3 +132,40 @@
   animation: modalFadeIn 200ms ease-out forwards;
 }
 
+
+/* Blinking caret for the hero typewriter */
+@keyframes caret {
+  0%, 45% {
+    opacity: 1;
+  }
+  55%, 100% {
+    opacity: 0;
+  }
+}
+
+.animate-caret {
+  animation: caret 1s steps(1, end) infinite;
+}
+
+/* Cross-fade as the hero showcase swaps from one visual to the next */
+@keyframes heroFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: heroFadeIn 0.45s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-caret,
+  .animate-fade-in {
+    animation: none;
+  }
+}

@@ -1,15 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'motion/react';
 import { 
-  Sparkles, 
-  ArrowRight, 
-  ArrowLeft,
   Play, 
   CheckCircle2, 
   ShieldCheck, 
   Zap, 
   BookOpen, 
-  Plus, 
   RotateCw,
   Compass,
   TrendingUp,
@@ -23,7 +19,7 @@ import {
   Video
 } from 'lucide-react';
 import { ThreeShaderBackground } from './ThreeShaderBackground';
-import { HeroLiveMathDemo } from './HeroLiveMathDemo';
+import { HeroShowcase } from './HeroShowcase';
 import { HowItWorksSection } from './HowItWorksSection';
 import { TopicBentoGrid } from './TopicBentoGrid';
 import { LandingNavbar } from './LandingNavbar';
@@ -46,8 +42,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onSelectTopicAndOpenApp,
   onAskQuestionAndOpenApp
 }) => {
-  const [promptText, setPromptText] = useState('');
-
   const categories = [
     { name: 'Lượng giác', icon: <Compass className="w-5 h-5" />, topicId: 'trig_circle' },
     { name: 'Giải tích', icon: <TrendingUp className="w-5 h-5" />, topicId: 'derivative' },
@@ -64,23 +58,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     { text: 'Chứng minh công thức diện tích hình tròn πr²', topicId: 'circle_area' },
   ];
 
-  const handlePromptSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!promptText.trim()) {
-      onOpenApp();
+  // The hero showcase hands back the exact question it just typed out, so the
+  // app opens already answering what the visitor was reading.
+  const handleAskShowcaseQuestion = (question: string) => {
+    if (onAskQuestionAndOpenApp) {
+      onAskQuestionAndOpenApp(question);
       return;
     }
-    if (onAskQuestionAndOpenApp) {
-      onAskQuestionAndOpenApp(promptText);
-    } else {
-      const lower = promptText.toLowerCase();
-      const match = SUGGESTED_TOPICS.find(t => 
-        t.title.toLowerCase().includes(lower) || 
-        t.prompt.toLowerCase().includes(lower) || 
-        t.category.toLowerCase().includes(lower)
-      ) || SUGGESTED_TOPICS[0];
-      onSelectTopicAndOpenApp(match);
-    }
+    onOpenApp();
   };
 
   const handleSelectExample = (topicId: string) => {
@@ -108,7 +93,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         {/* Subtle Mathematical Coordinate Canvas Grid */}
         <ThreeShaderBackground theme={theme} />
 
-        <div className="relative z-10 max-w-4xl mx-auto w-full text-center space-y-8">
+        <div className="relative z-10 max-w-5xl mx-auto w-full text-center space-y-8">
           
           {/* Replit-style Large Display Headline */}
           <motion.div
@@ -128,50 +113,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </p>
           </motion.div>
 
-          {/* Replit Signature Hero Prompt Box */}
+          {/* Typed question on the left, the app's own visual answering it on the
+              right. Replaces the old free-text prompt box: visitors no longer have
+              to invent a maths question before they can see what the product does. */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="max-w-2xl mx-auto"
           >
-            <form
-              onSubmit={handlePromptSubmit}
-              className="relative bg-white dark:bg-[#1A1C23] border-2 border-[#F26207]/40 dark:border-[#F26207]/40 rounded-2xl p-4 sm:p-5 shadow-md shadow-orange-500/5 dark:shadow-none hover:border-[#F26207] focus-within:border-[#F26207] focus-within:ring-2 focus-within:ring-[#F26207]/20 transition-all text-left group"
-            >
-              <textarea
-                value={promptText}
-                onChange={(e) => setPromptText(e.target.value)}
-                placeholder="Nhập bài toán, định lý hoặc phương trình muốn mô phỏng..."
-                rows={2}
-                className="w-full bg-transparent resize-none outline-none text-[#1C1B1A] dark:text-white placeholder-[#78756F] dark:placeholder-slate-400 text-sm sm:text-base font-sans"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handlePromptSubmit(e);
-                  }
-                }}
-              />
-
-              <div className="flex items-center justify-between pt-2 border-t border-[#EAE4D9] dark:border-white/5">
-                <button
-                  type="button"
-                  onClick={onOpenApp}
-                  className="p-1.5 rounded-lg text-[#625F59] dark:text-slate-400 hover:text-[#F26207] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                  title="Mở thêm tuỳ chọn toán học"
-                >
-                  <Plus className="w-5 h-5" />
-                </button>
-
-                <button
-                  type="submit"
-                  className="w-10 h-10 rounded-full bg-[#F26207] hover:bg-[#D95300] text-white flex items-center justify-center shadow-md shadow-orange-600/20 transition-all cursor-pointer transform hover:scale-105"
-                  title="Khởi tạo mô phỏng"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </form>
+            <HeroShowcase onAskQuestion={handleAskShowcaseQuestion} />
           </motion.div>
 
           {/* Interactive Category Icons (Replit Style Carousel) */}
@@ -228,19 +178,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
       </section>
 
-      {/* Live Interactive Math Canvas Showcase (Desmos / 3Blue1Brown) */}
-      <section className="py-12 sm:py-16 px-4 sm:px-6 max-w-5xl mx-auto">
-        <div className="text-center space-y-3 mb-8">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-950/60 text-[#F26207] text-xs font-medium border border-orange-200 dark:border-orange-900/40">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Trực quan hoá thời gian thực 60 FPS</span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#F26207] dark:text-white">
-            Khám phá trực tiếp cơ chế toán học
-          </h2>
-        </div>
-        <HeroLiveMathDemo onOpenApp={onOpenApp} />
-      </section>
+      {/* The standalone live-demo section used to live here. It is gone because the
+          hero showcase above now does the same job, in the same viewport, without
+          making the visitor scroll to find it. */}
 
       {/* Section: Why Visual Math Works (3Blue1Brown Philosophy) */}
       <section id="why-us" className="py-16 sm:py-20 border-y border-[#EAE4D9] dark:border-[#26282E] bg-white dark:bg-[#15171D] relative transition-colors">
