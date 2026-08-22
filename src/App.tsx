@@ -4,7 +4,6 @@ import {
   TopicData, 
   ChatMessage, 
   ThemeMode, 
-  AppStateMode, 
   GeminiMathResponse, 
   VisualizationCard, 
   ParameterSlider, 
@@ -15,7 +14,6 @@ import { Header } from './components/Header';
 import { ChatPanel } from './components/ChatPanel';
 import { VisualizationPanel } from './components/VisualizationPanel';
 import { ExplanationPanel } from './components/ExplanationPanel';
-import { AnimationModal } from './components/AnimationModal';
 import { FullscreenVisualModal } from './components/FullscreenVisualModal';
 import { SkeletonLoader } from './components/SkeletonLoader';
 import { ErrorStateCard } from './components/ErrorStateCard';
@@ -26,17 +24,18 @@ function createTopicFromGeminiResponse(
   data: GeminiMathResponse, 
   query: string
 ): TopicData {
-  const sliders: ParameterSlider[] = Object.keys(data.params || {}).map((key) => {
-    const range = data.param_ranges?.[key] || { min: -10, max: 10, step: 1 };
+  const defaultValues: Record<string, number> = {};
+  const sliders: ParameterSlider[] = (data.parameters || []).map((p) => {
+    defaultValues[p.key] = p.value;
     return {
-      id: key,
-      name: range.name || key,
-      symbol: range.symbol || key,
-      min: range.min,
-      max: range.max,
-      step: range.step,
-      defaultValue: data.params[key],
-      unit: range.unit || ''
+      id: p.key,
+      name: p.name || p.key,
+      symbol: p.key,
+      min: p.min,
+      max: p.max,
+      step: p.step,
+      defaultValue: p.value,
+      unit: p.unit || ''
     };
   });
 
@@ -64,7 +63,7 @@ function createTopicFromGeminiResponse(
     steps,
     type: data.topic,
     concept: data.concept,
-    defaultValues: { ...data.params },
+    defaultValues,
     renderInfo: {
       domainX: [-10, 10],
       domainY: [-10, 10],
@@ -78,42 +77,113 @@ export default function App() {
   // Current active view: 'landing' | 'app'
   const [currentView, setCurrentView] = useState<'landing' | 'app'>('landing');
 
-  // Theme state
-  const [theme, setTheme] = useState<ThemeMode>('dark');
-  
-  // UI state modes: 'normal' | 'loading' | 'error'
-  const [stateMode, setStateMode] = useState<AppStateMode>('normal');
+  // Theme state with localStorage persistence
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    try {
+      const savedTheme = localStorage.getItem('mathvisual:theme');
+      if (savedTheme === 'dark' || savedTheme === 'light') return savedTheme;
+    } catch (e) {
+      console.warn('Cannot read theme from localStorage:', e);
+    }
+    return 'dark';
+  });
 
-  // Active topic
-  const [activeTopic, setActiveTopic] = useState<TopicData>(SUGGESTED_TOPICS[0]);
+  // Visualization Cards History with localStorage persistence
+  const [cards, setCards] = useState<VisualizationCard[]>(() => {
+    try {
+      const savedCards = localStorage.getItem('mathvisual:cards');
+      if (savedCards) {
+        const parsed = JSON.parse(savedCards);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.warn('Cannot read cards from localStorage:', e);
+    }
+    return [];
+  });
+
+  // Active Card ID with localStorage persistence
+  const [activeCardId, setActiveCardId] = useState<string | undefined>(() => {
+    try {
+      const savedActiveCardId = localStorage.getItem('mathvisual:activeCardId');
+      if (savedActiveCardId && savedActiveCardId !== 'undefined') {
+        return JSON.parse(savedActiveCardId);
+      }
+    } catch (e) {
+      console.warn('Cannot read activeCardId from localStorage:', e);
+    }
+    return undefined;
+  });
+
+  // Active topic (restored from active card if present, otherwise default)
+  const [activeTopic, setActiveTopic] = useState<TopicData>(() => {
+    try {
+      const savedActiveCardId = localStorage.getItem('mathvisual:activeCardId');
+      const savedCards = localStorage.getItem('mathvisual:cards');
+      if (savedActiveCardId && savedCards) {
+        const cardId = JSON.parse(savedActiveCardId);
+        const parsedCards: VisualizationCard[] = JSON.parse(savedCards);
+        const matched = parsedCards.find((c) => c.id === cardId);
+        if (matched?.data) {
+          return createTopicFromGeminiResponse(matched.data, matched.query);
+        }
+      }
+    } catch (e) {
+      console.warn('Cannot restore activeTopic from localStorage:', e);
+    }
+    return SUGGESTED_TOPICS[0];
+  });
 
   // Current parameter values for interactive visualization
-  const [paramValues, setParamValues] = useState<Record<string, number>>(
-    SUGGESTED_TOPICS[0].defaultValues
-  );
-
-  // Visualization Cards History
-  const [cards, setCards] = useState<VisualizationCard[]>([]);
-  const [activeCardId, setActiveCardId] = useState<string | undefined>(undefined);
+  const [paramValues, setParamValues] = useState<Record<string, number>>(() => {
+    try {
+      const savedActiveCardId = localStorage.getItem('mathvisual:activeCardId');
+      const savedCards = localStorage.getItem('mathvisual:cards');
+      if (savedActiveCardId && savedCards) {
+        const cardId = JSON.parse(savedActiveCardId);
+        const parsedCards: VisualizationCard[] = JSON.parse(savedCards);
+        const matched = parsedCards.find((c) => c.id === cardId);
+        if (matched) {
+          return matched.currentParams || createTopicFromGeminiResponse(matched.data, matched.query).defaultValues;
+        }
+      }
+    } catch (e) {
+      console.warn('Cannot restore paramValues from localStorage:', e);
+    }
+    return SUGGESTED_TOPICS[0].defaultValues;
+  });
 
   // Gemini loading state
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [apiSource, setApiSource] = useState<'gemini' | 'fallback'>('gemini');
 
-  // Chat message thread
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'msg-1',
-      sender: 'assistant',
-      timestamp: '21:20',
-      text: SUGGESTED_TOPICS[0].initialMessage,
-      latex: SUGGESTED_TOPICS[0].formulaSummary,
-      topicId: SUGGESTED_TOPICS[0].id,
-      isInitial: true
+  // Chat message thread with localStorage persistence
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    const defaultMessages: ChatMessage[] = [
+      {
+        id: 'msg-1',
+        sender: 'assistant',
+        timestamp: '21:20',
+        text: SUGGESTED_TOPICS[0].initialMessage,
+        latex: SUGGESTED_TOPICS[0].formulaSummary,
+        topicId: SUGGESTED_TOPICS[0].id,
+        isInitial: true
+      }
+    ];
+
+    try {
+      const savedMessages = localStorage.getItem('mathvisual:messages');
+      if (savedMessages) {
+        const parsed = JSON.parse(savedMessages);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Cannot read messages from localStorage:', e);
     }
-  ]);
+    return defaultMessages;
+  });
 
   // Modals & In-place Animation Trigger
-  const [isAnimationModalOpen, setIsAnimationModalOpen] = useState<boolean>(false);
   const [isFullscreenVisualOpen, setIsFullscreenVisualOpen] = useState<boolean>(false);
   const [animationTrigger, setAnimationTrigger] = useState<number>(0);
 
@@ -124,6 +194,46 @@ export default function App() {
 
   // Mobile active view tab ('visual' | 'chat')
   const [mobileTab, setMobileTab] = useState<'visual' | 'chat'>('visual');
+
+  // Persist theme to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('mathvisual:theme', theme);
+    } catch (e) {
+      console.warn('Cannot save theme to localStorage:', e);
+    }
+  }, [theme]);
+
+  // Persist cards to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('mathvisual:cards', JSON.stringify(cards));
+    } catch (e) {
+      console.warn('Cannot save cards to localStorage:', e);
+    }
+  }, [cards]);
+
+  // Persist activeCardId to localStorage
+  useEffect(() => {
+    try {
+      if (activeCardId !== undefined) {
+        localStorage.setItem('mathvisual:activeCardId', JSON.stringify(activeCardId));
+      } else {
+        localStorage.removeItem('mathvisual:activeCardId');
+      }
+    } catch (e) {
+      console.warn('Cannot save activeCardId to localStorage:', e);
+    }
+  }, [activeCardId]);
+
+  // Persist messages to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('mathvisual:messages', JSON.stringify(messages));
+    } catch (e) {
+      console.warn('Cannot save messages to localStorage:', e);
+    }
+  }, [messages]);
 
   // Handle Dark / Light mode toggle
   useEffect(() => {
@@ -168,7 +278,7 @@ export default function App() {
     setActiveCardId(card.id);
     const reconstructedTopic = createTopicFromGeminiResponse(card.data, card.query);
     setActiveTopic(reconstructedTopic);
-    setParamValues(card.currentParams || card.data.params);
+    setParamValues(card.currentParams || reconstructedTopic.defaultValues);
   };
 
   // Handle opening app directly with a selected topic from Landing Page
@@ -219,7 +329,8 @@ export default function App() {
       });
 
       if (!response.ok) {
-        throw new Error(`Server returned HTTP status ${response.status}`);
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `Máy chủ phản hồi mã lỗi HTTP ${response.status}`);
       }
 
       const geminiResult: GeminiMathResponse = await response.json();
@@ -234,15 +345,30 @@ export default function App() {
           isNonMathWarning: true
         };
         setMessages((prev) => [...prev, nonMathMsg]);
+      } else if (geminiResult.supported === false) {
+        // Handle unsupported mathematical concept gracefully without altering visualizer canvas or creating cards
+        const unsupportedMsg: ChatMessage = {
+          id: `msg-${Date.now()}-ai-unsupported`,
+          sender: 'assistant',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          text: `Chủ đề toán học "${geminiResult.title || text}" hiện chưa có mô hình mô phỏng tương tác chuyên biệt trên hệ thống.\n\nHiện tại MathVisual Tutor hỗ trợ 5 mô hình mô phỏng chuyên sâu sau:\n1. Phương trình & Hàm số bậc hai (Parabol: hệ số a, b, c)\n2. Vòng tròn đơn vị & Lượng giác (Góc quay lượng giác θ, sin/cos)\n3. Bản chất hình học của Đạo hàm & Tiếp tuyến (Điểm xét x₀, bước nhảy Δx)\n4. Không gian Vector 3 chiều (Toạ độ vx, vy, vz trong Oxyz)\n5. Phân rã chứng minh diện tích hình tròn S = πr² (Bán kính R, số nan quạt n)\n\nBạn có thể thử đặt câu hỏi về một trong 5 chủ đề trên để trải nghiệm mô phỏng trực quan!`,
+          isNonMathWarning: true
+        };
+        setMessages((prev) => [...prev, unsupportedMsg]);
       } else {
         // Valid Math Question: Create Card and Update Visualizer
+        const defaultValues: Record<string, number> = {};
+        (geminiResult.parameters || []).forEach((p) => {
+          defaultValues[p.key] = p.value;
+        });
+
         const newCardId = `card-${Date.now()}`;
         const newCard: VisualizationCard = {
           id: newCardId,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           query: text,
           data: geminiResult,
-          currentParams: { ...geminiResult.params }
+          currentParams: defaultValues
         };
 
         const newTopic = createTopicFromGeminiResponse(geminiResult, text);
@@ -250,7 +376,10 @@ export default function App() {
         setCards((prev) => [newCard, ...prev]);
         setActiveCardId(newCardId);
         setActiveTopic(newTopic);
-        setParamValues({ ...geminiResult.params });
+        setParamValues(defaultValues);
+        if (geminiResult.source) {
+          setApiSource(geminiResult.source);
+        }
 
         const aiMsg: ChatMessage = {
           id: `msg-${Date.now()}-ai`,
@@ -309,8 +438,6 @@ export default function App() {
       <Header
         theme={theme}
         onToggleTheme={toggleTheme}
-        stateMode={stateMode}
-        onSelectStateMode={setStateMode}
         activeTopicTitle={activeTopic.title}
         onResetTopic={handleResetTopic}
         onGoToLanding={() => {
@@ -345,7 +472,7 @@ export default function App() {
             <MessageSquare className="w-3.5 h-3.5" />
             <span>Hội thoại AI ({messages.length})</span>
             {cards.length > 0 && (
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#F26207] text-white">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#F26207] text-white">
                 {cards.length}
               </span>
             )}
@@ -356,84 +483,53 @@ export default function App() {
       {/* Main App Body */}
       <main className="flex-1 w-full max-w-[1600px] mx-auto p-3 sm:p-4 md:p-6">
         
-        {/* State: ERROR STATE PREVIEW */}
-        {stateMode === 'error' ? (
-          <div className="py-8">
-            <ErrorStateCard
-              onRetry={() => setStateMode('normal')}
-              onResetToDefaults={() => {
-                handleResetTopic();
-                setStateMode('normal');
-              }}
-            />
-          </div>
-        ) : stateMode === 'loading' ? (
-          /* State: LOADING SKELETON PREVIEW */
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
-            <div className="hidden lg:block lg:col-span-5 h-[720px] bg-[#121316] text-gray-100 rounded-2xl border border-[#26282E] p-6 space-y-4 animate-shimmer overflow-hidden">
-              <div className="h-6 w-48 bg-white/10 rounded"></div>
-              <div className="h-14 bg-white/5 rounded-xl"></div>
-              <div className="h-14 bg-white/5 rounded-xl"></div>
-              <div className="h-14 bg-white/5 rounded-xl"></div>
+        {/* NORMAL 2-COLUMN GEOMETRIC BALANCE LAYOUT */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          {/* LEFT ASIDE: 38-40% - Dark Chat, Topic Suggestions, & Saved Cards */}
+          <aside className={`lg:col-span-5 xl:col-span-5 ${mobileTab === 'chat' ? 'block' : 'hidden lg:block'}`}>
+            <div className="rounded-2xl border border-[#26282E] shadow-xl overflow-hidden h-[calc(100vh-7rem)] min-h-[600px] max-h-[860px] sticky top-20 bg-[#121316] text-gray-100">
+              <ChatPanel
+                topics={SUGGESTED_TOPICS}
+                activeTopic={activeTopic}
+                onSelectTopic={handleSelectTopic}
+                cards={cards}
+                activeCardId={activeCardId}
+                onSelectCard={handleSelectCard}
+                messages={messages}
+                onSendMessage={handleSendMessage}
+                onRequestAnimation={handleTriggerInPlaceAnimation}
+                isAnalyzing={isAnalyzing}
+                source={apiSource}
+              />
             </div>
-            <div className="lg:col-span-7">
-              <SkeletonLoader />
-            </div>
-          </div>
-        ) : (
-          /* State: NORMAL 2-COLUMN GEOMETRIC BALANCE LAYOUT */
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          </aside>
+
+          {/* RIGHT MAIN CANVAS: 60-62% - Light/Crisp Visual Stage & Step-by-Step */}
+          <section className={`lg:col-span-7 xl:col-span-7 space-y-6 ${mobileTab === 'visual' ? 'block' : 'hidden lg:block'}`}>
             
-            {/* LEFT ASIDE: 38-40% - Dark Chat, Topic Suggestions, & Saved Cards */}
-            <aside className={`lg:col-span-5 xl:col-span-5 ${mobileTab === 'chat' ? 'block' : 'hidden lg:block'}`}>
-              <div className="rounded-2xl border border-[#26282E] shadow-xl overflow-hidden h-[calc(100vh-7rem)] min-h-[600px] max-h-[860px] sticky top-20 bg-[#121316] text-gray-100">
-                <ChatPanel
-                  topics={SUGGESTED_TOPICS}
-                  activeTopic={activeTopic}
-                  onSelectTopic={handleSelectTopic}
-                  cards={cards}
-                  activeCardId={activeCardId}
-                  onSelectCard={handleSelectCard}
-                  messages={messages}
-                  onSendMessage={handleSendMessage}
-                  onRequestAnimation={handleTriggerInPlaceAnimation}
-                  isAnalyzing={isAnalyzing}
-                />
-              </div>
-            </aside>
+            {/* 1. Geometric Visual Canvas & Realtime Parameter Panel */}
+            <VisualizationPanel
+              topic={activeTopic}
+              paramValues={paramValues}
+              onParamChange={handleParamChange}
+              onOpenFullscreen={() => setIsFullscreenVisualOpen(true)}
+              onRequestAnimation={handleTriggerInPlaceAnimation}
+              animationTrigger={animationTrigger}
+              isAnalyzing={isAnalyzing}
+            />
 
-            {/* RIGHT MAIN CANVAS: 60-62% - Light/Crisp Visual Stage & Step-by-Step */}
-            <section className={`lg:col-span-7 xl:col-span-7 space-y-6 ${mobileTab === 'visual' ? 'block' : 'hidden lg:block'}`}>
-              
-              {/* 1. Geometric Visual Canvas & Realtime Parameter Panel */}
-              <VisualizationPanel
-                topic={activeTopic}
-                paramValues={paramValues}
-                onParamChange={handleParamChange}
-                onOpenFullscreen={() => setIsFullscreenVisualOpen(true)}
-                onRequestAnimation={handleTriggerInPlaceAnimation}
-                animationTrigger={animationTrigger}
-              />
+            {/* 2. Step-by-Step Mathematical Explanation */}
+            <ExplanationPanel
+              topic={activeTopic}
+              onRequestAnimation={handleTriggerInPlaceAnimation}
+            />
 
-              {/* 2. Step-by-Step Mathematical Explanation */}
-              <ExplanationPanel
-                topic={activeTopic}
-                onRequestAnimation={handleTriggerInPlaceAnimation}
-              />
+          </section>
 
-            </section>
-
-          </div>
-        )}
+        </div>
 
       </main>
-
-      {/* 3Blue1Brown Manim Animation Preview Modal */}
-      <AnimationModal
-        isOpen={isAnimationModalOpen}
-        onClose={() => setIsAnimationModalOpen(false)}
-        topic={activeTopic}
-      />
 
       {/* Fullscreen Interactive Visualizer Modal */}
       <FullscreenVisualModal

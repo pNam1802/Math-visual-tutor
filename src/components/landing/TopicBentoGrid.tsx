@@ -31,10 +31,10 @@ export const TopicBentoGrid: React.FC<TopicBentoGridProps> = ({ onSelectTopicAnd
               <span>KHO CHỦ ĐỀ TOÁN HỌC</span>
             </div>
             
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold text-[#F26207] dark:text-white leading-tight" style={{ letterSpacing: '0px' }}>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold text-[#F26207] dark:text-white leading-tight">
               Kho chủ đề trực quan hoá đa dạng
             </h2>
-            <p className="text-[#3D3A35] dark:text-slate-300 text-base sm:text-lg mt-3 font-medium" style={{ letterSpacing: '0px' }}>
+            <p className="text-[#3D3A35] dark:text-slate-300 text-base sm:text-lg mt-3 font-medium">
               Từ đại số trung học đến giải tích vi phân và hình học không gian 3D. Nhấp vào bất kỳ thẻ nào để mở bảng điều khiển tương tác.
             </p>
           </div>
@@ -63,10 +63,10 @@ export const TopicBentoGrid: React.FC<TopicBentoGridProps> = ({ onSelectTopicAnd
                 <span className="text-[11px] font-mono font-bold uppercase text-[#F26207] px-2.5 py-1 rounded-md bg-orange-50 dark:bg-orange-950/80 border border-orange-200 dark:border-orange-800/60">
                   Lượng giác học
                 </span>
-                <h3 className="text-2xl font-bold text-[#1C1B1A] dark:text-white mt-2 group-hover:text-[#F26207] transition-colors" style={{ letterSpacing: '0px' }}>
+                <h3 className="text-2xl font-bold text-[#1C1B1A] dark:text-white mt-2 group-hover:text-[#F26207] transition-colors">
                   Đường tròn lượng giác & Toạ độ pha
                 </h3>
-                <p className="text-xs sm:text-sm text-[#625F59] dark:text-slate-400 mt-1 max-w-md" style={{ letterSpacing: '0px' }}>
+                <p className="text-xs sm:text-sm text-[#625F59] dark:text-slate-400 mt-1 max-w-md">
                   Khám phá mối liên hệ hình học tự nhiên giữa góc quay θ, giá trị sin, cos, tan và toạ độ điểm P(x,y) trên đường tròn đơn vị R=1.
                 </p>
               </div>
@@ -114,10 +114,10 @@ export const TopicBentoGrid: React.FC<TopicBentoGridProps> = ({ onSelectTopicAnd
                 <span className="text-[11px] font-mono font-bold uppercase text-emerald-700 dark:text-emerald-400 px-2.5 py-1 rounded-md bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800/60">
                   Đại số & Hàm số
                 </span>
-                <h3 className="text-xl font-bold text-[#1C1B1A] dark:text-white mt-2 group-hover:text-[#F26207] transition-colors" style={{ letterSpacing: '0px' }}>
+                <h3 className="text-xl font-bold text-[#1C1B1A] dark:text-white mt-2 group-hover:text-[#F26207] transition-colors">
                   Phương trình bậc 2 & Parabol
                 </h3>
-                <p className="text-xs sm:text-sm text-[#625F59] dark:text-slate-400 mt-1" style={{ letterSpacing: '0px' }}>
+                <p className="text-xs sm:text-sm text-[#625F59] dark:text-slate-400 mt-1">
                   Đỉnh cực trị V, trục đối xứng và số giao điểm với trục hoành phụ thuộc vào biệt thức Δ = b² - 4ac.
                 </p>
               </div>
@@ -162,7 +162,7 @@ export const TopicBentoGrid: React.FC<TopicBentoGridProps> = ({ onSelectTopicAnd
                 <span className="text-[11px] font-mono font-bold uppercase text-[#F26207] px-2.5 py-1 rounded-md bg-orange-50 dark:bg-orange-950/80 border border-orange-200 dark:border-orange-800/60">
                   Giải tích Vi phân
                 </span>
-                <h3 className="text-xl font-bold text-[#1C1B1A] dark:text-white mt-2 group-hover:text-[#F26207] transition-colors" style={{ letterSpacing: '0px' }}>
+                <h3 className="text-xl font-bold text-[#1C1B1A] dark:text-white mt-2 group-hover:text-[#F26207] transition-colors">
                   Đạo hàm & Cát tuyến tiệm cận
                 </h3>
               </div>
@@ -171,7 +171,7 @@ export const TopicBentoGrid: React.FC<TopicBentoGridProps> = ({ onSelectTopicAnd
               </div>
             </div>
 
-            <p className="text-xs text-[#625F59] dark:text-slate-400 mb-4" style={{ letterSpacing: '0px' }}>
+            <p className="text-xs sm:text-sm text-[#625F59] dark:text-slate-400 mb-4">
               Hiểu bản chất vi phân lim Δy/Δx khi cát tuyến thu hẹp dần và tiến về tiếp tuyến chính xác.
             </p>
 
@@ -205,7 +205,7 @@ export const TopicBentoGrid: React.FC<TopicBentoGridProps> = ({ onSelectTopicAnd
                 <span className="text-[11px] font-mono font-bold uppercase text-sky-700 dark:text-sky-400 px-2.5 py-1 rounded-md bg-sky-100 dark:bg-sky-950/80 border border-sky-200 dark:border-sky-800/60">
                   Không gian 3D
                 </span>
-                <h3 className="text-xl font-bold text-[#1C1B1A] dark:text-white mt-2 group-hover:text-[#F26207] transition-colors" style={{ letterSpacing: '0px' }}>
+                <h3 className="text-xl font-bold text-[#1C1B1A] dark:text-white mt-2 group-hover:text-[#F26207] transition-colors">
                   Hệ toạ độ Oxyz & Vector 3D
                 </h3>
               </div>
@@ -214,7 +214,7 @@ export const TopicBentoGrid: React.FC<TopicBentoGridProps> = ({ onSelectTopicAnd
               </div>
             </div>
 
-            <p className="text-xs text-[#625F59] dark:text-slate-400 mb-4" style={{ letterSpacing: '0px' }}>
+            <p className="text-xs sm:text-sm text-[#625F59] dark:text-slate-400 mb-4">
               Dựng hình hộp toạ độ không gian 3 chiều Isometric, tính chuẩn vector độ dài ||v|| = √(x² + y² + z²).
             </p>
 
@@ -251,7 +251,7 @@ export const TopicBentoGrid: React.FC<TopicBentoGridProps> = ({ onSelectTopicAnd
                 <span className="text-[11px] font-mono font-bold uppercase text-[#625F59] dark:text-slate-300 px-2.5 py-1 rounded-md bg-[#FAF7F2] dark:bg-slate-800 border border-[#EAE4D9] dark:border-slate-700">
                   Tích phân & Diện tích
                 </span>
-                <h3 className="text-xl font-bold text-[#1C1B1A] dark:text-white mt-2 group-hover:text-[#F26207] transition-colors" style={{ letterSpacing: '0px' }}>
+                <h3 className="text-xl font-bold text-[#1C1B1A] dark:text-white mt-2 group-hover:text-[#F26207] transition-colors">
                   Chứng minh diện tích A = πr²
                 </h3>
               </div>
@@ -260,7 +260,7 @@ export const TopicBentoGrid: React.FC<TopicBentoGridProps> = ({ onSelectTopicAnd
               </div>
             </div>
 
-            <p className="text-xs text-[#625F59] dark:text-slate-400 mb-4" style={{ letterSpacing: '0px' }}>
+            <p className="text-xs sm:text-sm text-[#625F59] dark:text-slate-400 mb-4">
               Chia nhỏ hình tròn thành các nan quạt nêm ghép lại thành hình bình hành xấp xỉ có đáy πr và chiều cao r.
             </p>
 

@@ -32,6 +32,11 @@ export const ThreeJs3DVisual: React.FC<ThreeJs3DVisualProps> = ({
   const boxHelperRef = useRef<THREE.LineSegments | null>(null);
   const pointMarkerRef = useRef<THREE.Mesh | null>(null);
 
+  const zoomRef = useRef(zoom);
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
+
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
@@ -48,8 +53,8 @@ export const ThreeJs3DVisual: React.FC<ThreeJs3DVisualProps> = ({
     camera.position.set(9, 7, 10);
     camera.lookAt(0, 1.5, 0);
 
-    // Renderer setup
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    // Renderer setup with preserveDrawingBuffer enabled for screenshot / PNG export
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
     rendererRef.current = renderer;
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -133,8 +138,8 @@ export const ThreeJs3DVisual: React.FC<ThreeJs3DVisualProps> = ({
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
 
-      // Orbit camera based on angles and zoom
-      const distance = 14 / (zoom || 1);
+      // Orbit camera based on angles and zoom from zoomRef
+      const distance = 14 / (zoomRef.current || 1);
       camera.position.x = distance * Math.cos(rotationAngleX) * Math.sin(rotationAngleY);
       camera.position.y = distance * Math.sin(rotationAngleX) + 1.5;
       camera.position.z = distance * Math.cos(rotationAngleX) * Math.cos(rotationAngleY);
@@ -165,11 +170,45 @@ export const ThreeJs3DVisual: React.FC<ThreeJs3DVisualProps> = ({
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
       resizeObserver.disconnect();
+
+      // Clean up static helpers
+      grid.geometry.dispose();
+      (grid.material as THREE.Material).dispose();
+      axesHelper.geometry.dispose();
+      (axesHelper.material as THREE.Material).dispose();
+
+      // Clean up dynamic meshes if still mounted
+      if (arrowHelperRef.current) {
+        arrowHelperRef.current.dispose();
+        arrowHelperRef.current = null;
+      }
+      if (pointMarkerRef.current) {
+        pointMarkerRef.current.geometry.dispose();
+        if (Array.isArray(pointMarkerRef.current.material)) {
+          pointMarkerRef.current.material.forEach((m) => m.dispose());
+        } else {
+          pointMarkerRef.current.material.dispose();
+        }
+        pointMarkerRef.current = null;
+      }
+      if (boxHelperRef.current) {
+        boxHelperRef.current.geometry.dispose();
+        if (Array.isArray(boxHelperRef.current.material)) {
+          boxHelperRef.current.material.forEach((m) => m.dispose());
+        } else {
+          boxHelperRef.current.material.dispose();
+        }
+        boxHelperRef.current = null;
+      }
+
       renderer.dispose();
+      if (container.contains(dom)) {
+        container.removeChild(dom);
+      }
     };
   }, []);
 
-  // Update Vector 3D / Geometry elements when vx, vy, vz or zoom change
+  // Update Vector 3D / Geometry elements when vx, vy, vz, showGrid or isHighlight change
   useEffect(() => {
     const scene = sceneRef.current;
     if (!scene) return;
@@ -188,11 +227,21 @@ export const ThreeJs3DVisual: React.FC<ThreeJs3DVisualProps> = ({
     if (pointMarkerRef.current) {
       scene.remove(pointMarkerRef.current);
       pointMarkerRef.current.geometry.dispose();
+      if (Array.isArray(pointMarkerRef.current.material)) {
+        pointMarkerRef.current.material.forEach((m) => m.dispose());
+      } else {
+        pointMarkerRef.current.material.dispose();
+      }
       pointMarkerRef.current = null;
     }
     if (boxHelperRef.current) {
       scene.remove(boxHelperRef.current);
       boxHelperRef.current.geometry.dispose();
+      if (Array.isArray(boxHelperRef.current.material)) {
+        boxHelperRef.current.material.forEach((m) => m.dispose());
+      } else {
+        boxHelperRef.current.material.dispose();
+      }
       boxHelperRef.current = null;
     }
 
@@ -259,7 +308,7 @@ export const ThreeJs3DVisual: React.FC<ThreeJs3DVisualProps> = ({
     scene.add(boxLines);
     boxHelperRef.current = boxLines;
 
-  }, [vx, vy, vz, showGrid]);
+  }, [vx, vy, vz, showGrid, isHighlight]);
 
   const norm = Math.sqrt(vx * vx + vy * vy + vz * vz);
 

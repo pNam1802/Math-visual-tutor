@@ -2,21 +2,14 @@ import React from 'react';
 import { 
   Sun, 
   Moon, 
-  Sparkles, 
-  Layers, 
-  AlertCircle, 
-  CheckCircle2, 
   RefreshCw,
-  Sliders,
-  Compass
+  Sliders
 } from 'lucide-react';
-import { ThemeMode, AppStateMode } from '../types';
+import { ThemeMode } from '../types';
 
 interface HeaderProps {
   theme: ThemeMode;
   onToggleTheme: () => void;
-  stateMode: AppStateMode;
-  onSelectStateMode: (mode: AppStateMode) => void;
   activeTopicTitle: string;
   onResetTopic: () => void;
   onGoToLanding?: () => void;
@@ -25,8 +18,6 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   theme,
   onToggleTheme,
-  stateMode,
-  onSelectStateMode,
   activeTopicTitle,
   onResetTopic,
   onGoToLanding
@@ -46,14 +37,14 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-sans font-bold text-lg sm:text-xl text-[#F26207] dark:text-white tracking-tight" style={{ letterSpacing: '0px' }}>
+              <h1 className="font-sans font-bold text-lg sm:text-xl text-[#F26207] dark:text-white tracking-tight">
                 MathVisual<span className="text-[#F26207] dark:text-orange-400">Tutor</span>
               </h1>
               <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-medium bg-orange-50 dark:bg-orange-950/60 text-[#F26207] border border-orange-200 dark:border-orange-800/60">
                 Visual Engine
               </span>
             </div>
-            <p className="text-xs text-[#625F59] dark:text-slate-400 hidden sm:block" style={{ letterSpacing: '0px' }}>
+            <p className="text-xs text-[#625F59] dark:text-slate-400 hidden sm:block">
               Gia sư toán học trực quan • Mô phỏng hình học thời gian thực
             </p>
           </div>
@@ -62,54 +53,14 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Center: Current active topic badge (desktop) */}
         <div className="hidden lg:flex items-center gap-2 bg-white dark:bg-slate-800/60 px-3.5 py-1.5 rounded-xl border border-[#EAE4D9] dark:border-slate-700 shadow-2xs">
           <Sliders className="w-3.5 h-3.5 text-[#F26207]" />
-          <span className="text-xs text-[#625F59] dark:text-slate-400" style={{ letterSpacing: '0px' }}>Đang khảo sát:</span>
-          <span className="text-xs font-semibold text-[#1C1B1A] dark:text-slate-200 font-sans max-w-[240px] truncate" style={{ letterSpacing: '0px' }}>
+          <span className="text-xs text-[#625F59] dark:text-slate-400">Đang khảo sát:</span>
+          <span className="text-xs font-semibold text-[#1C1B1A] dark:text-slate-200 font-sans max-w-[240px] truncate">
             {activeTopicTitle}
           </span>
         </div>
 
-        {/* Right: State Switcher Demo & Theme Toggle */}
+        {/* Right: Theme Toggle & Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* UI State Mode Preview Bar */}
-          <div className="flex items-center bg-white dark:bg-slate-800/60 p-1 rounded-xl border border-[#EAE4D9] dark:border-slate-700 text-xs shadow-2xs">
-            <button
-              onClick={() => onSelectStateMode('normal')}
-              title="Xem giao diện hoạt động bình thường"
-              className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
-                stateMode === 'normal'
-                  ? 'bg-orange-50 dark:bg-slate-700 text-[#F26207] font-semibold shadow-xs'
-                  : 'text-[#625F59] dark:text-slate-400 hover:text-[#1C1B1A] dark:hover:text-white'
-              }`}
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Chuẩn</span>
-            </button>
-            <button
-              onClick={() => onSelectStateMode('loading')}
-              title="Xem trạng thái Loading Skeleton & Shimmer"
-              className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
-                stateMode === 'loading'
-                  ? 'bg-amber-50 dark:bg-slate-700 text-amber-600 dark:text-amber-400 font-semibold shadow-xs'
-                  : 'text-[#625F59] dark:text-slate-400 hover:text-[#1C1B1A] dark:hover:text-white'
-              }`}
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Loading</span>
-            </button>
-            <button
-              onClick={() => onSelectStateMode('error')}
-              title="Xem trạng thái Báo lỗi thiết kế chuyên biệt"
-              className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
-                stateMode === 'error'
-                  ? 'bg-rose-50 dark:bg-slate-700 text-rose-600 dark:text-rose-400 font-semibold shadow-xs'
-                  : 'text-[#625F59] dark:text-slate-400 hover:text-[#1C1B1A] dark:hover:text-white'
-              }`}
-            >
-              <AlertCircle className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Error</span>
-            </button>
-          </div>
-
           {/* Back to Landing Page Button */}
           {onGoToLanding && (
             <button

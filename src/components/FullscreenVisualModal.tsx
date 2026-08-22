@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ZoomIn, 
   ZoomOut, 
   RotateCcw, 
   Grid, 
   Sliders,
-  Minimize2
+  Minimize2,
+  Download,
+  Check,
+  Loader2
 } from 'lucide-react';
 import { TopicData } from '../types';
 import { QuadraticVisual } from './visuals/QuadraticVisual';
@@ -14,6 +17,7 @@ import { DerivativeVisual } from './visuals/DerivativeVisual';
 import { ThreeJs3DVisual } from './visuals/ThreeJs3DVisual';
 import { CircleAreaVisual } from './visuals/CircleAreaVisual';
 import { EquationVisual } from './visuals/EquationVisual';
+import { exportVisualStageToPNG } from '../utils/exportVisualImage';
 
 interface FullscreenVisualModalProps {
   isOpen: boolean;
@@ -32,6 +36,52 @@ export const FullscreenVisualModal: React.FC<FullscreenVisualModalProps> = ({
 }) => {
   const [zoom, setZoom] = useState<number>(1.25);
   const [showGrid, setShowGrid] = useState<boolean>(true);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [exportSuccess, setExportSuccess] = useState<boolean>(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+
+  const handleDownloadPNG = async () => {
+    if (isExporting || !stageRef.current) return;
+    setIsExporting(true);
+    try {
+      const success = await exportVisualStageToPNG(stageRef.current, topic.title);
+      if (success) {
+        setExportSuccess(true);
+        setTimeout(() => setExportSuccess(false), 2200);
+      }
+    } catch (err) {
+      console.error('Export error in fullscreen:', err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Keyboard navigation, focus management & body scroll lock
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Focus on close button when modal opens
+    closeButtonRef.current?.focus();
+
+    // Lock body scroll
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    // Handle Escape keydown
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -112,7 +162,12 @@ export const FullscreenVisualModal: React.FC<FullscreenVisualModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#121316] text-white flex flex-col animate-in fade-in duration-200">
+    <div 
+      role="dialog"
+      aria-modal="true"
+      aria-label={topic.title}
+      className="fixed inset-0 z-50 bg-[#121316] text-white flex flex-col animate-modal-fade-in"
+    >
       
       {/* Top Navbar */}
       <div className="h-16 px-6 border-b border-[#26282E] flex items-center justify-between bg-[#181A20]">
@@ -151,13 +206,43 @@ export const FullscreenVisualModal: React.FC<FullscreenVisualModalProps> = ({
           </button>
           <button
             onClick={() => setZoom(1.25)}
+            title="Đặt lại thu phóng (100%)"
             className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
+
           <div className="w-[1px] h-6 bg-slate-800 mx-1"></div>
+
+          {/* Download PNG Button */}
           <button
+            onClick={handleDownloadPNG}
+            disabled={isExporting}
+            title={`Tải ảnh PNG đồ thị (${topic.title})`}
+            className={`p-2 rounded-xl text-xs transition-all border flex items-center gap-1.5 cursor-pointer ${
+              exportSuccess
+                ? 'bg-emerald-950/80 text-emerald-400 border-emerald-700'
+                : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:border-[#F26207]'
+            }`}
+          >
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 animate-spin text-[#F26207]" />
+            ) : exportSuccess ? (
+              <Check className="w-4 h-4 text-emerald-400" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            <span className="hidden sm:inline font-mono font-medium">
+              {isExporting ? 'Đang xuất...' : exportSuccess ? 'Đã tải' : 'Tải PNG'}
+            </span>
+          </button>
+
+          <div className="w-[1px] h-6 bg-slate-800 mx-1"></div>
+
+          <button
+            ref={closeButtonRef}
             onClick={onClose}
+            aria-label="Đóng chế độ toàn màn hình"
             className="p-2 rounded-xl bg-[#F26207]/20 text-orange-400 hover:bg-[#F26207] hover:text-white transition-colors cursor-pointer"
           >
             <Minimize2 className="w-5 h-5" />
@@ -166,7 +251,10 @@ export const FullscreenVisualModal: React.FC<FullscreenVisualModalProps> = ({
       </div>
 
       {/* Main Canvas Area & Floating Parameter Dock */}
-      <div className="flex-1 relative flex items-center justify-center p-6 bg-[#0E1015] overflow-hidden">
+      <div 
+        ref={stageRef}
+        className="flex-1 relative flex items-center justify-center p-6 bg-[#0E1015] overflow-hidden"
+      >
         {renderVisualEngine()}
 
         {/* Floating Parameter Dock at bottom */}

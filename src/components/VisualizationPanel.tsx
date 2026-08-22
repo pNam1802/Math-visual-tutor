@@ -2,12 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   ZoomIn, 
   ZoomOut, 
-  RotateCcw, 
   Maximize2, 
   Grid, 
   Sparkles,
-  Sliders,
-  Play
+  Download,
+  Check,
+  Loader2
 } from 'lucide-react';
 import { TopicData } from '../types';
 import { QuadraticVisual } from './visuals/QuadraticVisual';
@@ -17,10 +17,13 @@ import { ThreeJs3DVisual } from './visuals/ThreeJs3DVisual';
 import { CircleAreaVisual } from './visuals/CircleAreaVisual';
 import { EquationVisual } from './visuals/EquationVisual';
 import { KatexRenderer } from './KatexRenderer';
+import { SkeletonLoader } from './SkeletonLoader';
 import { useScriptedTimeline } from '../hooks/useScriptedTimeline';
+import { useSpeechNarration } from '../hooks/useSpeechNarration';
 import { NarrationOverlay } from './timeline/NarrationOverlay';
 import { TimelineControlBar } from './timeline/TimelineControlBar';
 import { TimelinePreparingCard } from './timeline/TimelinePreparingCard';
+import { exportVisualStageToPNG } from '../utils/exportVisualImage';
 
 interface VisualizationPanelProps {
   topic: TopicData;
@@ -29,6 +32,7 @@ interface VisualizationPanelProps {
   onOpenFullscreen: () => void;
   onRequestAnimation?: () => void;
   animationTrigger?: number;
+  isAnalyzing?: boolean;
 }
 
 export const VisualizationPanel: React.FC<VisualizationPanelProps> = ({
@@ -37,7 +41,8 @@ export const VisualizationPanel: React.FC<VisualizationPanelProps> = ({
   onParamChange,
   onOpenFullscreen,
   onRequestAnimation,
-  animationTrigger = 0
+  animationTrigger = 0,
+  isAnalyzing = false
 }) => {
   const [zoom, setZoom] = useState<number>(1);
   const [showGrid, setShowGrid] = useState<boolean>(true);
@@ -46,6 +51,10 @@ export const VisualizationPanel: React.FC<VisualizationPanelProps> = ({
   const [mode, setMode] = useState<'interactive' | 'preparing' | 'timeline'>('interactive');
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [exportSuccess, setExportSuccess] = useState<boolean>(false);
 
   // Hook for scripted timeline
   const timeline = useScriptedTimeline(
@@ -53,6 +62,16 @@ export const VisualizationPanel: React.FC<VisualizationPanelProps> = ({
     paramValues,
     mode === 'timeline'
   );
+
+  const isTimelineActive = mode === 'timeline';
+
+  // Hook for Web Speech API 3B1B Narration
+  const speech = useSpeechNarration({
+    activeScriptStep: timeline.activeScriptStep,
+    isPlaying: timeline.isPlaying,
+    speed: timeline.speed,
+    timelineActive: isTimelineActive,
+  });
 
   // Respond to external animation triggers (from Chat / Explanation panels)
   useEffect(() => {
@@ -68,20 +87,43 @@ export const VisualizationPanel: React.FC<VisualizationPanelProps> = ({
 
   const handleAnimationReady = () => {
     setMode('timeline');
+    speech.stopSpeaking();
     timeline.reset();
   };
 
   const handleReturnToInteractive = () => {
+    speech.stopSpeaking();
     timeline.pause();
     setMode('interactive');
+  };
+
+  const handleTimelineReset = () => {
+    speech.stopSpeaking();
+    timeline.reset();
   };
 
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.15, 2.0));
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.15, 0.6));
   const handleResetZoom = () => setZoom(1);
 
+  // Download visual stage as PNG
+  const handleDownloadPNG = async () => {
+    if (isExporting || !stageRef.current) return;
+    setIsExporting(true);
+    try {
+      const success = await exportVisualStageToPNG(stageRef.current, topic.title);
+      if (success) {
+        setExportSuccess(true);
+        setTimeout(() => setExportSuccess(false), 2200);
+      }
+    } catch (err) {
+      console.error('Export error:', err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Effective params and phase for renderer
-  const isTimelineActive = mode === 'timeline';
   const effectiveParams = isTimelineActive ? timeline.interpolatedParams : paramValues;
   const currentPhase = isTimelineActive ? timeline.phase : undefined;
 
@@ -232,16 +274,30 @@ export const VisualizationPanel: React.FC<VisualizationPanelProps> = ({
             <ZoomIn className="w-3.5 h-3.5" />
           </button>
 
-          {/* Reset Zoom */}
-          <button
-            onClick={handleResetZoom}
-            title="Căn giữa"
-            className="p-2 rounded-lg bg-white dark:bg-slate-800 border border-[#EAE4D9] dark:border-slate-700 text-[#625F59] dark:text-slate-400 hover:bg-[#FAF7F2] dark:hover:bg-slate-700 transition-colors shadow-2xs cursor-pointer"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-          </button>
-
           <div className="w-[1px] h-4 bg-[#EAE4D9] dark:bg-slate-700 mx-0.5"></div>
+
+          {/* Download PNG Button */}
+          <button
+            onClick={handleDownloadPNG}
+            disabled={isExporting}
+            title={`Tải ảnh PNG đồ thị (${topic.title})`}
+            className={`p-2 rounded-lg text-xs transition-all border flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+              exportSuccess
+                ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800'
+                : 'bg-white dark:bg-slate-800 border-[#EAE4D9] dark:border-slate-700 text-[#1C1B1A] dark:text-slate-300 hover:border-[#F26207] hover:text-[#F26207] dark:hover:text-orange-400'
+            }`}
+          >
+            {isExporting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#F26207]" />
+            ) : exportSuccess ? (
+              <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            ) : (
+              <Download className="w-3.5 h-3.5" />
+            )}
+            <span className="hidden sm:inline text-[11px] font-sans font-medium">
+              {isExporting ? 'Đang xuất...' : exportSuccess ? 'Đã tải ảnh' : 'Tải PNG'}
+            </span>
+          </button>
 
           {/* Fullscreen Modal trigger */}
           <button
@@ -255,13 +311,23 @@ export const VisualizationPanel: React.FC<VisualizationPanelProps> = ({
       </div>
 
       {/* Main Geometric Stage */}
-      <div className="relative min-h-[380px] sm:min-h-[420px] bg-[#FAF7F2] dark:bg-[#0F1219] flex items-center justify-center p-3 overflow-hidden">
+      <div 
+        ref={stageRef}
+        className="relative min-h-[380px] sm:min-h-[420px] bg-[#FAF7F2] dark:bg-[#0F1219] flex items-center justify-center p-3 overflow-hidden"
+      >
         
         {/* Render Active Geometric Model */}
         {renderVisualEngine()}
 
+        {/* Loading Skeleton Overlay during Gemini API analysis */}
+        {isAnalyzing && (
+          <div className="absolute inset-0 z-30 bg-[#FAF7F2] dark:bg-[#0F1219] flex flex-col justify-center overflow-hidden">
+            <SkeletonLoader />
+          </div>
+        )}
+
         {/* 1. Preparing / Script compilation overlay (~1.0s) */}
-        {mode === 'preparing' && (
+        {mode === 'preparing' && !isAnalyzing && (
           <TimelinePreparingCard
             topic={topic}
             onReady={handleAnimationReady}
@@ -269,13 +335,15 @@ export const VisualizationPanel: React.FC<VisualizationPanelProps> = ({
         )}
 
         {/* 2. Narration Subtitle Banner when Timeline is active */}
-        {isTimelineActive && (
+        {isTimelineActive && !isAnalyzing && (
           <NarrationOverlay
             phase={timeline.phase}
             step={timeline.activeScriptStep}
             stepIndex={timeline.currentStepIndex}
             totalSteps={timeline.compiledTimeline.steps.length}
             progress={timeline.progress}
+            isSpeaking={speech.isSpeaking}
+            isSpeechEnabled={speech.isSpeechEnabled}
           />
         )}
 
@@ -292,8 +360,12 @@ export const VisualizationPanel: React.FC<VisualizationPanelProps> = ({
           phase={timeline.phase}
           currentStepIndex={timeline.currentStepIndex}
           compiledTimeline={timeline.compiledTimeline}
+          isSpeechEnabled={speech.isSpeechEnabled}
+          isSpeechSupported={speech.isSupported}
+          isSpeaking={speech.isSpeaking}
+          onToggleSpeech={speech.toggleSpeech}
           onTogglePlay={timeline.togglePlay}
-          onReset={timeline.reset}
+          onReset={handleTimelineReset}
           onPrevStep={timeline.prevStep}
           onNextStep={timeline.nextStep}
           onSeek={timeline.seekTo}

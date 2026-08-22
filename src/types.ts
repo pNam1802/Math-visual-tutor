@@ -43,6 +43,16 @@ export interface MathParamRange {
   symbol?: string;
 }
 
+export interface MathParameterItem {
+  key: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  name: string;
+  unit?: string;
+}
+
 export interface MathStep {
   title: string;
   explanation: string;
@@ -52,13 +62,15 @@ export interface MathStep {
 }
 
 export interface GeminiMathResponse {
+  source?: 'gemini' | 'fallback';
   is_math_question: boolean;
-  topic: MathTopicCategory;
-  concept: string;
+  supported?: boolean;
+  requested_concept?: string;
+  topic?: MathTopicCategory;
+  concept?: string;
   title?: string;
   summary?: string;
-  params: Record<string, number>;
-  param_ranges: Record<string, MathParamRange>;
+  parameters: MathParameterItem[];
   latex: string;
   steps: MathStep[];
 }

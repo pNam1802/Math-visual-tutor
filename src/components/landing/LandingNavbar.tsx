@@ -30,7 +30,7 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({
             <div className="w-8 h-8 rounded-xl bg-[#F26207] flex items-center justify-center text-white font-bold text-base shadow-sm">
               M
             </div>
-            <span className="font-sans font-bold text-xl text-[#1C1B1A] dark:text-white tracking-tight" style={{ letterSpacing: '0px' }}>
+            <span className="font-sans font-bold text-xl text-[#1C1B1A] dark:text-white tracking-tight">
               MathVisual<span className="text-[#F26207]">Tutor</span>
             </span>
           </div>

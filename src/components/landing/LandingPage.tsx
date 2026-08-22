@@ -47,22 +47,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onAskQuestionAndOpenApp
 }) => {
   const [promptText, setPromptText] = useState('');
-  const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
 
   const categories = [
-    { name: 'Lượng giác', icon: <Compass className="w-5 h-5" />, topicId: 'trig' },
+    { name: 'Lượng giác', icon: <Compass className="w-5 h-5" />, topicId: 'trig_circle' },
     { name: 'Giải tích', icon: <TrendingUp className="w-5 h-5" />, topicId: 'derivative' },
-    { name: 'Không gian 3D', icon: <Box className="w-5 h-5" />, topicId: 'vector3d' },
+    { name: 'Không gian 3D', icon: <Box className="w-5 h-5" />, topicId: 'vector_3d' },
     { name: 'Đại số', icon: <Calculator className="w-5 h-5" />, topicId: 'quadratic' },
-    { name: 'Hình học', icon: <CircleDot className="w-5 h-5" />, topicId: 'circle-area' },
+    { name: 'Hình học', icon: <CircleDot className="w-5 h-5" />, topicId: 'circle_area' },
   ];
 
   const examplePrompts = [
-    { text: 'Đường tròn lượng giác & sin/cos', topicId: 'trig' },
+    { text: 'Đường tròn lượng giác & sin/cos', topicId: 'trig_circle' },
     { text: 'Đạo hàm & Cát tuyến tiếp tuyến', topicId: 'derivative' },
     { text: 'Parabol y = ax² + bx + c & Nghiệm Δ', topicId: 'quadratic' },
-    { text: 'Không gian Vector 3D toạ độ Oxyz', topicId: 'vector3d' },
-    { text: 'Chứng minh công thức diện tích hình tròn πr²', topicId: 'circle-area' },
+    { text: 'Không gian Vector 3D toạ độ Oxyz', topicId: 'vector_3d' },
+    { text: 'Chứng minh công thức diện tích hình tròn πr²', topicId: 'circle_area' },
   ];
 
   const handlePromptSubmit = (e: React.FormEvent) => {
@@ -85,7 +84,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   };
 
   const handleSelectExample = (topicId: string) => {
-    const topic = SUGGESTED_TOPICS.find(t => t.id === topicId) || SUGGESTED_TOPICS[0];
+    const topic = SUGGESTED_TOPICS.find(t => t.id === topicId);
+    if (!topic) {
+      console.warn(`[LandingPage] Không tìm thấy topic với id: "${topicId}"`);
+      return;
+    }
     onSelectTopicAndOpenApp(topic);
   };
 
@@ -116,12 +119,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           >
             <h1
               className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-sans font-extrabold text-[#F26207] dark:text-white tracking-tight drop-shadow-xs"
-              style={{ letterSpacing: '-0.03em' }}
             >
               {"Bạn muốn khám phá gì?".normalize("NFC")}
             </h1>
 
-            <p className="text-base sm:text-lg md:text-xl text-[#3D3A35] dark:text-slate-300 max-w-2xl mx-auto font-medium" style={{ letterSpacing: '0px' }}>
+            <p className="text-base sm:text-lg md:text-xl text-[#3D3A35] dark:text-slate-300 max-w-2xl mx-auto font-medium">
               Trực quan hoá phương trình, giải tích và không gian vector 3D trong tích tắc — không cần cài đặt.
             </p>
           </motion.div>
@@ -143,7 +145,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 placeholder="Nhập bài toán, định lý hoặc phương trình muốn mô phỏng..."
                 rows={2}
                 className="w-full bg-transparent resize-none outline-none text-[#1C1B1A] dark:text-white placeholder-[#78756F] dark:placeholder-slate-400 text-sm sm:text-base font-sans"
-                style={{ letterSpacing: '0px' }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -180,23 +181,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             transition={{ duration: 0.4, delay: 0.2 }}
             className="flex items-center justify-center gap-2 sm:gap-4 max-w-xl mx-auto pt-2"
           >
-            <button
-              type="button"
-              onClick={() => setActiveCategoryIndex((prev) => (prev > 0 ? prev - 1 : categories.length - 1))}
-              className="p-2 text-[#8F8D88] hover:text-[#1C1B1A] dark:hover:text-white transition-colors cursor-pointer"
-              aria-label="Previous category"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-
             <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto py-1">
-              {categories.map((cat, idx) => (
+              {categories.map((cat) => (
                 <button
                   key={cat.name}
                   onClick={() => handleSelectExample(cat.topicId)}
                   className="flex flex-col items-center gap-2 group cursor-pointer"
                 >
-                  <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-white dark:bg-[#1A1C23] border border-[#EAE4D9] dark:border-[#26282E] flex items-center justify-center text-[#5E5D59] dark:text-slate-300 group-hover:border-[#F26207] group-hover:text-[#F26207] group-hover:shadow-sm transition-all">
+                  <div className="w-14 h-14 rounded-2xl bg-white dark:bg-[#1A1C23] border border-[#EAE4D9] dark:border-[#26282E] flex items-center justify-center text-[#5E5D59] dark:text-slate-300 group-hover:border-[#F26207] group-hover:text-[#F26207] group-hover:shadow-sm transition-all">
                     {cat.icon}
                   </div>
                   <span className="text-xs font-medium text-[#625F59] dark:text-slate-400 group-hover:text-[#1C1B1A] dark:group-hover:text-white transition-colors">
@@ -205,15 +197,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </button>
               ))}
             </div>
-
-            <button
-              type="button"
-              onClick={() => setActiveCategoryIndex((prev) => (prev < categories.length - 1 ? prev + 1 : 0))}
-              className="p-2 text-[#8F8D88] hover:text-[#1C1B1A] dark:hover:text-white transition-colors cursor-pointer"
-              aria-label="Next category"
-            >
-              <ArrowRight className="w-4 h-4" />
-            </button>
           </motion.div>
 
           {/* Example prompt pills with Try an example prompt ↺ */}
@@ -252,7 +235,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <Sparkles className="w-3.5 h-3.5" />
             <span>Trực quan hoá thời gian thực 60 FPS</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#F26207] dark:text-white" style={{ letterSpacing: '0px' }}>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#F26207] dark:text-white">
             Khám phá trực tiếp cơ chế toán học
           </h2>
         </div>

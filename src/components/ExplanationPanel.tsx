@@ -66,11 +66,11 @@ export const ExplanationPanel: React.FC<ExplanationPanelProps> = ({
             <div className="w-6 h-6 rounded-lg bg-orange-50 dark:bg-orange-950/80 text-[#F26207] flex items-center justify-center">
               <BookOpen className="w-3.5 h-3.5" />
             </div>
-            <h3 className="font-heading font-bold text-base text-[#1C1B1A] dark:text-slate-100" style={{ letterSpacing: '0px' }}>
+            <h3 className="font-heading font-bold text-base text-[#1C1B1A] dark:text-slate-100">
               Diễn giải trực quan từng bước
             </h3>
           </div>
-          <p className="text-xs text-[#625F59] dark:text-slate-400 mt-1" style={{ letterSpacing: '0px' }}>
+          <p className="text-[13px] text-[#625F59] dark:text-slate-400 mt-1">
             Logic giải chi tiết kèm hình học trực quan cho <KatexRenderer latex={topic.formulaSummary} className="font-semibold text-[#F26207]" />
           </p>
         </div>
@@ -118,7 +118,7 @@ export const ExplanationPanel: React.FC<ExplanationPanelProps> = ({
                 <div className="flex items-center gap-3 min-w-0">
                   {/* Step Number Badge */}
                   <span
-                    className={`w-6 h-6 text-white rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-colors ${
+                    className={`w-6 h-6 text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
                       isActive ? 'bg-[#FF7729] text-white' : 'bg-[#F26207]'
                     }`}
                   >
@@ -126,11 +126,11 @@ export const ExplanationPanel: React.FC<ExplanationPanelProps> = ({
                   </span>
 
                   <div className="min-w-0">
-                    <h4 className="font-bold text-sm text-[#1C1B1A] dark:text-slate-100 truncate" style={{ letterSpacing: '0px' }}>
+                    <h4 className="font-bold text-sm sm:text-base text-[#1C1B1A] dark:text-slate-100 truncate">
                       {step.title}
                     </h4>
                     {step.summary && (
-                      <p className="text-xs text-[#625F59] dark:text-slate-400 truncate" style={{ letterSpacing: '0px' }}>
+                      <p className="text-[13px] text-[#625F59] dark:text-slate-400 truncate">
                         {step.summary}
                       </p>
                     )}
@@ -148,11 +148,11 @@ export const ExplanationPanel: React.FC<ExplanationPanelProps> = ({
 
               {/* Collapsible Content */}
               {isOpen && (
-                <div className="px-4 pb-4 pt-1 sm:px-5 sm:pb-5 space-y-3 text-xs sm:text-sm border-t border-[#EAE4D9] dark:border-white/10">
+                <div className="px-4 pb-4 pt-1 sm:px-5 sm:pb-5 space-y-3 text-sm sm:text-base border-t border-[#EAE4D9] dark:border-white/10">
                   
                   {/* Formula Box with KaTeX */}
                   {step.formula && (
-                    <div className="p-3 rounded-xl bg-orange-50/50 dark:bg-[#07090E] border border-orange-200/60 dark:border-white/10 font-mono text-xs sm:text-sm text-[#F26207] dark:text-orange-300 flex items-center justify-between gap-2 overflow-x-auto">
+                    <div className="p-3 rounded-xl bg-orange-50/50 dark:bg-[#07090E] border border-orange-200/60 dark:border-white/10 font-mono text-sm sm:text-base text-[#F26207] dark:text-orange-300 flex items-center justify-between gap-2 overflow-x-auto">
                       <div className="font-bold overflow-x-auto">
                         <KatexRenderer latex={step.formula} />
                       </div>
@@ -163,20 +163,20 @@ export const ExplanationPanel: React.FC<ExplanationPanelProps> = ({
                   )}
 
                   {/* Detail explanation */}
-                  <p className="text-[#1C1B1A] dark:text-slate-300 leading-relaxed text-xs sm:text-sm pl-1" style={{ letterSpacing: '0px' }}>
+                  <p className="text-[#1C1B1A] dark:text-slate-300 leading-relaxed text-[15px] sm:text-base pl-1">
                     {explanationText}
                   </p>
 
                   {/* Visual Connection Highlight & Key Takeaway */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                     {step.visualHighlight && (
-                      <div className="flex items-start gap-2 p-2.5 rounded-lg bg-orange-50/40 dark:bg-white/5 text-[11px] text-[#625F59] dark:text-slate-400 border border-orange-200/40 dark:border-white/10" style={{ letterSpacing: '0px' }}>
+                      <div className="flex items-start gap-2 p-2.5 rounded-lg bg-orange-50/40 dark:bg-white/5 text-xs sm:text-[13px] text-[#625F59] dark:text-slate-400 border border-orange-200/40 dark:border-white/10">
                         <Eye className="w-3.5 h-3.5 text-[#F26207] dark:text-orange-400 shrink-0 mt-0.5" />
                         <span><strong>Trực quan:</strong> {step.visualHighlight}</span>
                       </div>
                     )}
                     {step.keyTakeaway && (
-                      <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50/70 dark:bg-amber-950/20 text-[11px] text-amber-800 dark:text-amber-300 border border-amber-200/40 dark:border-amber-900/30" style={{ letterSpacing: '0px' }}>
+                      <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50/70 dark:bg-amber-950/20 text-xs sm:text-[13px] text-amber-800 dark:text-amber-300 border border-amber-200/40 dark:border-amber-900/30">
                         <Lightbulb className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                         <span><strong>Ghi nhớ:</strong> {step.keyTakeaway}</span>
                       </div>
@@ -188,17 +188,6 @@ export const ExplanationPanel: React.FC<ExplanationPanelProps> = ({
             </div>
           );
         })}
-      </div>
-
-      {/* Progress Shimmer Bar */}
-      <div className="flex items-center space-x-4 p-3 bg-[#FAF7F2] dark:bg-[#121620] rounded-xl border border-[#EAE4D9] dark:border-white/10">
-        <div className="flex-1 h-2 bg-[#EAE4D9] dark:bg-gray-800 rounded-full overflow-hidden">
-          <div className="w-full h-full bg-[#F26207] relative animate-shimmer">
-          </div>
-        </div>
-        <span className="text-[10px] font-bold text-[#8F8D88] uppercase font-mono" style={{ letterSpacing: '0px' }}>
-          Đã tải toàn bộ các bước giải
-        </span>
       </div>
 
     </div>

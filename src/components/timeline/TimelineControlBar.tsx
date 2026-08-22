@@ -1,15 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   Play, 
   Pause, 
   RotateCcw, 
   ChevronLeft, 
   ChevronRight, 
-  Sliders, 
-  Download, 
-  Video, 
-  Sparkles,
-  Check
+  Sliders,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { TimelinePhase, TimelineScriptStep } from '../../types';
 import { CompiledTimeline } from '../../utils/timelineEngine';
@@ -23,6 +21,10 @@ interface TimelineControlBarProps {
   phase: TimelinePhase;
   currentStepIndex: number;
   compiledTimeline: CompiledTimeline;
+  isSpeechEnabled?: boolean;
+  isSpeechSupported?: boolean;
+  isSpeaking?: boolean;
+  onToggleSpeech?: () => void;
   onTogglePlay: () => void;
   onReset: () => void;
   onPrevStep: () => void;
@@ -42,40 +44,22 @@ export const TimelineControlBar: React.FC<TimelineControlBarProps> = ({
   phase,
   currentStepIndex,
   compiledTimeline,
+  isSpeechEnabled = false,
+  isSpeechSupported = false,
+  isSpeaking = false,
+  onToggleSpeech,
   onTogglePlay,
   onReset,
   onPrevStep,
   onNextStep,
   onSeek,
   onSpeedChange,
-  onReturnToInteractive,
-  containerRef
+  onReturnToInteractive
 }) => {
-  const [isExporting, setIsExporting] = useState<boolean>(false);
-  const [exportSuccess, setExportSuccess] = useState<boolean>(false);
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleExportClientSide = async () => {
-    try {
-      setIsExporting(true);
-      // Client-side recording using HTML Canvas / DOM snapshot or WebM recorder
-      // We simulate or capture the canvas element in containerRef
-      const canvasEl = containerRef?.current?.querySelector('canvas') || containerRef?.current?.querySelector('svg');
-      
-      // Wait a moment to record/capture frames
-      await new Promise((res) => setTimeout(res, 2000));
-      
-      setIsExporting(false);
-      setExportSuccess(true);
-      setTimeout(() => setExportSuccess(false), 3000);
-    } catch (e) {
-      setIsExporting(false);
-    }
   };
 
   return (
@@ -100,7 +84,7 @@ export const TimelineControlBar: React.FC<TimelineControlBarProps> = ({
             <span>•</span>
             <span className={phase === 'build-up' ? 'text-cyan-500 font-bold' : 'opacity-60'}>Dựng hình</span>
             <span>•</span>
-            <span className={phase === 'highlight' ? 'text-[#F59E0B] font-bold' : 'opacity-60'}>Điểm nhấn (#F59E0B)</span>
+            <span className={phase === 'highlight' ? 'text-[#F59E0B] font-bold' : 'opacity-60'}>Điểm nhấn</span>
             <span>•</span>
             <span className={phase === 'conclusion' ? 'text-emerald-500 font-bold' : 'opacity-60'}>Kết luận</span>
           </div>
@@ -193,30 +177,34 @@ export const TimelineControlBar: React.FC<TimelineControlBarProps> = ({
 
         {/* Right Action buttons */}
         <div className="flex items-center gap-2.5">
-          {/* Optional client-side export button */}
-          <button
-            onClick={handleExportClientSide}
-            disabled={isExporting}
-            className="px-3 py-2 rounded-xl border border-[#EAE4D9] dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-[#FAF7F2] dark:hover:bg-slate-700 text-xs font-medium text-[#625F59] dark:text-slate-300 flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Tải snapshot vector hoạt cảnh trực tiếp tại trình duyệt"
-          >
-            {isExporting ? (
-              <>
-                <span className="w-3.5 h-3.5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></span>
-                <span>Đang ghi hình...</span>
-              </>
-            ) : exportSuccess ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="text-emerald-500 font-bold">Đã lưu vector!</span>
-              </>
-            ) : (
-              <>
-                <Download className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Xuất WebM (Client-side)</span>
-              </>
-            )}
-          </button>
+          {/* Voice Narration Toggle (3Blue1Brown Audio Voiceover) */}
+          {isSpeechSupported && (
+            <button
+              onClick={onToggleSpeech}
+              className={`p-2 rounded-xl transition-all border flex items-center gap-1.5 text-xs font-sans font-medium cursor-pointer ${
+                isSpeechEnabled
+                  ? 'bg-orange-50 dark:bg-orange-950/60 text-[#F26207] border-orange-200 dark:border-orange-900/60 shadow-xs'
+                  : 'bg-[#FAF7F2] dark:bg-slate-800 text-[#625F59] dark:text-slate-400 border-[#EAE4D9] dark:border-slate-700 hover:text-[#1C1B1A] dark:hover:text-white'
+              }`}
+              title={
+                isSpeechEnabled
+                  ? 'Giọng kể 3B1B tiếng Việt: Đang BẬT (Click để tắt)'
+                  : 'Giọng kể 3B1B tiếng Việt: Đang TẮT (Click để bật đọc lời dẫn)'
+              }
+            >
+              {isSpeechEnabled ? (
+                <>
+                  <Volume2 className={`w-4 h-4 text-[#F26207] ${isSpeaking ? 'animate-pulse' : ''}`} />
+                  <span className="hidden sm:inline text-[11px] font-bold">Giọng đọc (BẬT)</span>
+                </>
+              ) : (
+                <>
+                  <VolumeX className="w-4 h-4 opacity-70" />
+                  <span className="hidden sm:inline text-[11px]">Giọng đọc (TẮT)</span>
+                </>
+              )}
+            </button>
+          )}
 
           {/* Return to interactive mode (Sliders) */}
           <button

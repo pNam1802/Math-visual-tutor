@@ -2,5 +2,7 @@
   "name": "MathVisual Tutor",
   "description": "EdTech visual interactive math tutor platform with real-time dynamic visualizations, step-by-step explanations, and 3Blue1Brown-inspired visual breakdowns.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

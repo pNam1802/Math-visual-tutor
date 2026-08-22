@@ -19,11 +19,11 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({ onOpenApp }) => {
               HOÀN TOÀN MIỄN PHÍ & TRỰC QUAN
             </span>
 
-            <h3 className="text-2xl sm:text-3xl md:text-4xl font-sans font-bold text-white tracking-normal" style={{ letterSpacing: '0px' }}>
+            <h3 className="text-2xl sm:text-3xl md:text-4xl font-sans font-bold text-white tracking-normal">
               Sẵn sàng làm chủ toán học bằng thị giác?
             </h3>
 
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans font-light" style={{ letterSpacing: '0px' }}>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans font-light">
               Trải nghiệm ngay bộ công cụ mô phỏng toán học tương tác kết hợp hoạt họa Manim và diễn giải từng bước logic.
             </p>
 
@@ -48,7 +48,7 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({ onOpenApp }) => {
           <div className="w-6 h-6 rounded-lg bg-[#F26207] flex items-center justify-center text-white text-xs font-sans font-bold">
             M
           </div>
-          <span style={{ letterSpacing: '0px' }}>© 2026 MathVisual Tutor. Nền tảng Giáo dục Toán học Trực quan.</span>
+          <span>© 2026 MathVisual Tutor. Nền tảng Giáo dục Toán học Trực quan.</span>
         </div>
 
         {/* Tech Stack badges */}

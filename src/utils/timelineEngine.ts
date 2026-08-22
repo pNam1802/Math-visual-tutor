@@ -83,7 +83,7 @@ export function compileTimelineScript(
     title: 'Điểm mấu chốt & Trực quan hóa',
     narration: highlightStep?.keyTakeaway || highlightStep?.visualHighlight || 'Nhấn mạnh điểm hội tụ, nghiệm của phương trình hoặc công thức mấu chốt.',
     formula: highlightStep?.formula || topic.formulaSummary,
-    keyHighlight: highlightStep?.visualHighlight || 'Điểm mấu chốt (#F59E0B)',
+    keyHighlight: highlightStep?.visualHighlight || 'Điểm mấu chốt',
     startPct: 65,
     endPct: 85,
     targetParams: { ...currentParams }

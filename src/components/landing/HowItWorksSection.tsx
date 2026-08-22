@@ -21,7 +21,7 @@ export const HowItWorksSection: React.FC<HowItWorksSectionProps> = ({ onOpenApp 
             <span>Query Prompt</span>
             <span className="text-[#F26207] font-bold">LaTeX Parser</span>
           </div>
-          <p className="text-[#1C1B1A] dark:text-white font-sans" style={{ letterSpacing: '0px' }}>"Minh hoạ ý nghĩa hình học của đường tròn lượng giác..."</p>
+          <p className="text-[#1C1B1A] dark:text-white font-sans">"Minh hoạ ý nghĩa hình học của đường tròn lượng giác..."</p>
           <div className="inline-block px-2 py-0.5 rounded bg-orange-100 dark:bg-orange-950/80 text-[#F26207] border border-orange-200 dark:border-orange-800/60 text-[10px]">
             x² + y² = 1 • (cos θ, sin θ)
           </div>
@@ -74,7 +74,7 @@ export const HowItWorksSection: React.FC<HowItWorksSectionProps> = ({ onOpenApp 
           <div className="h-9 rounded-lg bg-white dark:bg-slate-900 border border-[#EAE4D9] dark:border-slate-800 flex items-center justify-center font-mono text-[11px] text-[#F26207] font-bold">
             d/dx [sin(x)] = cos(x)
           </div>
-          <p className="text-[10px] text-[#625F59] dark:text-slate-400 font-sans" style={{ letterSpacing: '0px' }}>
+          <p className="text-xs text-[#625F59] dark:text-slate-400 font-sans">
             Biểu diễn tiếp tuyến xoay quanh đường cong theo thời gian thực
           </p>
         </div>
@@ -92,11 +92,11 @@ export const HowItWorksSection: React.FC<HowItWorksSectionProps> = ({ onOpenApp 
           <span>PHƯƠNG PHÁP TRỰC QUAN HOÁ</span>
         </div>
         
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold text-[#F26207] dark:text-white tracking-normal leading-tight mb-4" style={{ letterSpacing: '0px' }}>
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold text-[#F26207] dark:text-white tracking-normal leading-tight mb-4">
           Cách MathVisual giúp bạn hiểu sâu toán học
         </h2>
         
-        <p className="text-base sm:text-lg text-[#3D3A35] dark:text-slate-300 leading-relaxed font-medium" style={{ letterSpacing: '0px' }}>
+        <p className="text-base sm:text-lg text-[#3D3A35] dark:text-slate-300 leading-relaxed font-medium">
           Chuyển đổi các định lý trừu tượng thành trải nghiệm thị giác sống động chỉ qua 3 bước tinh gọn.
         </p>
       </div>
@@ -129,12 +129,12 @@ export const HowItWorksSection: React.FC<HowItWorksSectionProps> = ({ onOpenApp 
                   <span className="text-[11px] font-mono uppercase tracking-wider font-semibold text-[#F26207]">
                     {step.subtitle}
                   </span>
-                  <h3 className="text-xl font-bold text-[#1C1B1A] dark:text-white mt-1" style={{ letterSpacing: '0px' }}>
+                  <h3 className="text-xl font-bold text-[#1C1B1A] dark:text-white mt-1">
                     {step.title}
                   </h3>
                 </div>
 
-                <p className="text-sm text-[#625F59] dark:text-slate-400 leading-relaxed mb-6" style={{ letterSpacing: '0px' }}>
+                <p className="text-sm text-[#625F59] dark:text-slate-400 leading-relaxed mb-6">
                   {step.description}
                 </p>
               </div>

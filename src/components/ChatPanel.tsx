@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Send, 
   Sparkles, 
@@ -29,6 +29,7 @@ interface ChatPanelProps {
   onSendMessage: (text: string) => void;
   onRequestAnimation: () => void;
   isAnalyzing?: boolean;
+  source?: 'gemini' | 'fallback';
 }
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({
@@ -41,10 +42,19 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   messages,
   onSendMessage,
   onRequestAnimation,
-  isAnalyzing = false
+  isAnalyzing = false,
+  source = 'gemini'
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [activeTab, setActiveTab] = useState<'chat' | 'cards' | 'topics'>('chat');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom of chat when messages change or isAnalyzing updates
+  useEffect(() => {
+    if (activeTab === 'chat') {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages.length, isAnalyzing, activeTab]);
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,18 +98,25 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       {/* Panel Top Header - MathVisual Brand */}
       <div className="p-4 sm:p-5 border-b border-[#26282E] flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white mb-0.5" style={{ letterSpacing: '0px' }}>
+          <h1 className="text-xl font-bold text-white mb-0.5">
             MathVisual<span className="text-[#F26207]">Tutor</span>
           </h1>
-          <p className="text-[10px] sm:text-xs text-gray-400 font-semibold" style={{ letterSpacing: '0px' }}>
+          <p className="text-xs sm:text-[13px] text-gray-400 font-medium">
             Gia sư toán học trực quan 60 FPS
           </p>
         </div>
 
-        <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-800/60 flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          Gemini Live
-        </span>
+        {source === 'fallback' ? (
+          <span className="text-[10px] font-mono text-amber-400 bg-amber-950/60 px-2.5 py-1 rounded-full border border-amber-800/60 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+            Chế độ ngoại tuyến
+          </span>
+        ) : (
+          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-800/60 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            Gemini Live
+          </span>
+        )}
       </div>
 
       {/* Navigation Sub-Tabs (Hội thoại / Thẻ mô phỏng / Gợi ý) */}
@@ -179,17 +196,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                   )}
 
                   <div
-                    className={`max-w-[88%] rounded-2xl p-3.5 shadow-xs text-xs sm:text-sm leading-relaxed ${
+                    className={`max-w-[88%] rounded-2xl p-3.5 shadow-xs text-sm sm:text-[15px] leading-relaxed ${
                       isUser
                         ? 'bg-[#F26207] text-white rounded-br-xs'
                         : msg.isNonMathWarning
                         ? 'bg-amber-950/40 text-amber-200 rounded-bl-xs border border-amber-500/30'
                         : 'bg-white/5 text-gray-200 rounded-bl-xs border border-white/10'
                     }`}
-                    style={{ letterSpacing: '0px' }}
                   >
                     {msg.isNonMathWarning && (
-                      <div className="flex items-center gap-1.5 font-bold text-amber-400 mb-1.5">
+                      <div className="flex items-center gap-1.5 font-bold text-amber-400 mb-1.5 text-sm sm:text-[15px]">
                         <AlertCircle className="w-4 h-4" />
                         <span>Chưa nhận diện câu hỏi toán học</span>
                       </div>
@@ -198,12 +214,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                     <p className="whitespace-pre-line">{msg.text}</p>
 
                     {msg.latex && (
-                      <div className="mt-2 p-2 rounded-xl bg-black/50 border border-white/10 overflow-x-auto text-orange-300 select-all">
+                      <div className="mt-2 p-2.5 rounded-xl bg-black/50 border border-white/10 overflow-x-auto text-orange-300 select-all text-sm">
                         <KatexRenderer latex={msg.latex} />
                       </div>
                     )}
 
-                    <div className="mt-1.5 flex items-center justify-between text-[10px] text-gray-500">
+                    <div className="mt-1.5 flex items-center justify-between text-[11px] text-gray-500">
                       <span>{msg.timestamp}</span>
                       {!isUser && (
                         <span className="text-[#F26207] font-medium font-mono">MathVisual Engine</span>
@@ -227,6 +243,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                 <span>Gemini đang phân tích biểu thức toán học và thiết lập slider...</span>
               </div>
             )}
+
+            {/* Auto-scroll anchor */}
+            <div ref={messagesEndRef} />
 
           </div>
         )}
@@ -272,15 +291,15 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                         </span>
                       </div>
 
-                      <div className="font-semibold text-xs sm:text-sm text-white">
+                      <div className="font-semibold text-sm sm:text-base text-white">
                         {card.data.title || card.query}
                       </div>
 
-                      <div className="p-2 rounded-lg bg-black/40 border border-white/5 text-xs text-orange-300 overflow-x-auto">
+                      <div className="p-2 rounded-lg bg-black/40 border border-white/5 text-xs sm:text-sm text-orange-300 overflow-x-auto">
                         <KatexRenderer latex={card.data.latex} />
                       </div>
 
-                      <div className="flex items-center justify-between text-[11px] text-gray-400">
+                      <div className="flex items-center justify-between text-xs sm:text-[13px] text-gray-400">
                         <span>{card.data.steps.length} bước giải trực quan</span>
                         <span className="text-[#F26207] font-medium">
                           {isSelected ? 'Đang hiển thị' : 'Mở thẻ →'}
@@ -331,14 +350,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                           {t.category}
                         </span>
                         {isActive && (
-                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-[#F59E0B] font-medium">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-[#F59E0B] font-medium">
                             Đang chọn
                           </span>
                         )}
                       </div>
-                      <p className="font-normal text-xs sm:text-sm text-gray-200 group-hover:text-white transition-colors" style={{ letterSpacing: '0px' }}>
+                      <p className="font-normal text-sm sm:text-[15px] text-gray-200 group-hover:text-white transition-colors">
                         {t.prompt}{' '}
-                        <code className="font-mono text-orange-400 font-semibold ml-1 text-xs">
+                        <code className="font-mono text-orange-400 font-semibold ml-1 text-xs sm:text-sm">
                           {t.formulaSummary}
                         </code>
                       </p>
@@ -382,8 +401,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             onChange={(e) => setInputValue(e.target.value)}
             placeholder={isAnalyzing ? "Gemini đang xử lý..." : "Hỏi về phương trình, đạo hàm, vector, hình học..."}
             disabled={isAnalyzing}
-            className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-4 pr-12 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F26207]/50 transition-all disabled:opacity-60"
-            style={{ letterSpacing: '0px' }}
+            className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-4 pr-12 text-sm sm:text-base text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F26207]/50 transition-all disabled:opacity-60"
           />
           <button
             type="submit"

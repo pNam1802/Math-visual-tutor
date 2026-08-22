@@ -1,7 +1,7 @@
 import React from 'react';
 import { TimelinePhase, TimelineScriptStep } from '../../types';
 import { KatexRenderer } from '../KatexRenderer';
-import { Sparkles, Compass, Lightbulb, CheckCircle2, Play } from 'lucide-react';
+import { Sparkles, Compass, Lightbulb, CheckCircle2, Play, Volume2 } from 'lucide-react';
 
 interface NarrationOverlayProps {
   phase: TimelinePhase;
@@ -9,6 +9,8 @@ interface NarrationOverlayProps {
   stepIndex: number;
   totalSteps: number;
   progress: number;
+  isSpeaking?: boolean;
+  isSpeechEnabled?: boolean;
 }
 
 export const NarrationOverlay: React.FC<NarrationOverlayProps> = ({
@@ -16,7 +18,9 @@ export const NarrationOverlay: React.FC<NarrationOverlayProps> = ({
   step,
   stepIndex,
   totalSteps,
-  progress
+  progress,
+  isSpeaking = false,
+  isSpeechEnabled = false
 }) => {
   const getPhaseBadge = () => {
     switch (phase) {
@@ -56,10 +60,18 @@ export const NarrationOverlay: React.FC<NarrationOverlayProps> = ({
         
         {/* Phase Header */}
         <div className="flex items-center justify-between gap-2">
-          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider border ${badge.classes}`}>
-            {badge.icon}
-            {badge.label}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider border ${badge.classes}`}>
+              {badge.icon}
+              {badge.label}
+            </span>
+            {isSpeechEnabled && (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono text-orange-300 bg-orange-950/60 px-2 py-0.5 rounded-full border border-orange-800/60">
+                <Volume2 className={`w-3 h-3 text-[#F26207] ${isSpeaking ? 'animate-pulse' : ''}`} />
+                <span>{isSpeaking ? 'Đang đọc...' : 'Giọng 3B1B'}</span>
+              </span>
+            )}
+          </div>
 
           <span className="text-[11px] font-mono text-slate-400">
             Tiến độ: <span className="text-[#F26207] font-bold">{Math.round(progress)}%</span>
