@@ -313,6 +313,60 @@ export const QuadraticVisual: React.FC<QuadraticVisualProps> = ({
             />
           )}
 
+          {/* What Δ actually measures.
+              Δ is taught as a formula to memorise, so nothing on screen ever
+              shows what it IS. It is the vertex's distance from the x-axis,
+              scaled by 4a: y_vertex = −Δ/(4a). Drawing that gap, and marking the
+              instant it closes, turns the formula into something visible. */}
+          {a !== 0 && Math.abs(vertexY) > 0.05 && (
+            <g>
+              <line
+                x1={vertexScreenX}
+                y1={vertexScreenY}
+                x2={vertexScreenX}
+                y2={originY}
+                stroke={delta < 0 ? '#F43F5E' : '#10B981'}
+                strokeWidth="2.5"
+                strokeDasharray="5 3"
+                opacity="0.85"
+              />
+              <text
+                x={vertexScreenX + 8}
+                y={(vertexScreenY + originY) / 2 + 4}
+                className={`text-xs font-mono font-bold select-none pointer-events-none ${
+                  delta < 0
+                    ? 'fill-rose-600 dark:fill-rose-400'
+                    : 'fill-emerald-600 dark:fill-emerald-400'
+                }`}
+              >
+                {Math.abs(vertexY).toFixed(2)}
+              </text>
+            </g>
+          )}
+
+          {/* Δ = 0: the two roots have just merged into one */}
+          {a !== 0 && Math.abs(delta) <= 0.4 && (
+            <g>
+              <circle
+                cx={vertexScreenX}
+                cy={originY}
+                r="14"
+                fill="none"
+                stroke="#F59E0B"
+                strokeWidth="2.5"
+                className="animate-pulse"
+              />
+              <text
+                x={vertexScreenX}
+                y={originY + 34}
+                textAnchor="middle"
+                className="fill-amber-600 dark:fill-amber-400 text-xs font-bold select-none pointer-events-none"
+              >
+                Δ = 0 — hai nghiệm chập một
+              </text>
+            </g>
+          )}
+
           {/* Parabola Curve */}
           <path
             d={pathD}

@@ -7,6 +7,34 @@ interface TrigCircleVisualProps {
   animationPhase?: 'intro' | 'build-up' | 'highlight' | 'conclusion';
 }
 
+/**
+ * Renders an angle the way a student thinks about it.
+ *
+ * "2,04π" is arithmetically fine and pedagogically useless: nobody recognises
+ * it. Học sinh THPT reason in π/6, π/4, π/3, π/2, so snap to the nearest such
+ * fraction when the angle is close to one, and only fall back to a decimal when
+ * it genuinely is not.
+ */
+function formatRadian(angleDeg: number): string {
+  const normalised = ((angleDeg % 360) + 360) % 360;
+  if (normalised === 0) return '0';
+
+  // Twelfths cover every angle built from π/6, π/4, π/3 and π/2.
+  const twelfths = (normalised / 180) * 12;
+  const rounded = Math.round(twelfths);
+  if (Math.abs(twelfths - rounded) > 0.02 || rounded === 0) {
+    return `${((normalised / 180)).toFixed(2).replace('.', ',')}π`;
+  }
+
+  const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+  const divisor = gcd(rounded, 12);
+  const numerator = rounded / divisor;
+  const denominator = 12 / divisor;
+
+  const top = numerator === 1 ? 'π' : `${numerator}π`;
+  return denominator === 1 ? top : `${top}/${denominator}`;
+}
+
 export const TrigCircleVisual: React.FC<TrigCircleVisualProps> = ({
   angleDeg,
   zoom,
@@ -218,7 +246,7 @@ export const TrigCircleVisual: React.FC<TrigCircleVisualProps> = ({
         <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
           <span>tan θ = {Math.abs(tanVal) < 100 ? tanVal.toFixed(3) : '∞'}</span>
           <span>•</span>
-          <span>Radian: {rad.toFixed(3)} rad ({((angleDeg / 180) * 1).toFixed(2)}π)</span>
+          <span>Radian: {formatRadian(angleDeg)} ({rad.toFixed(2)} rad)</span>
         </div>
       </div>
     </div>

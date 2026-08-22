@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { TopicData } from '../types';
 import { KatexRenderer } from './KatexRenderer';
+import { PredictionCard } from './PredictionCard';
+import { getPrediction } from '../utils/predictions';
 
 interface ExplanationPanelProps {
   topic: TopicData;
@@ -28,6 +30,11 @@ export const ExplanationPanel: React.FC<ExplanationPanelProps> = ({
 
   const [activeStepId, setActiveStepId] = useState<number>(1);
 
+  // The worked steps stay closed until a guess is committed. Exploring the
+  // diagram is never blocked — only reading the answer is.
+  const prediction = getPrediction(topic.concept, topic.type);
+  const [hasPredicted, setHasPredicted] = useState<boolean>(false);
+
   // When topic changes, reset default open states for new steps
   useEffect(() => {
     const initialOpen: Record<number, boolean> = {};
@@ -36,6 +43,7 @@ export const ExplanationPanel: React.FC<ExplanationPanelProps> = ({
     });
     setExpandedSteps(initialOpen);
     setActiveStepId(topic.steps[0]?.id || 1);
+    setHasPredicted(false);
   }, [topic.id]);
 
   const toggleStep = (stepId: number) => {
@@ -93,8 +101,16 @@ export const ExplanationPanel: React.FC<ExplanationPanelProps> = ({
         </div>
       </div>
 
+      {prediction && (
+        <PredictionCard
+          prediction={prediction}
+          topicId={topic.id}
+          onAnswered={() => setHasPredicted(true)}
+        />
+      )}
+
       {/* Numbered Step Cards */}
-      <div className="space-y-3">
+      <div className={`space-y-3 ${prediction && !hasPredicted ? 'hidden' : ''}`}>
         {topic.steps.map((step, idx) => {
           const stepId = step.id || idx + 1;
           const isOpen = !!expandedSteps[stepId];

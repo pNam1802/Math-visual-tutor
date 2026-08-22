@@ -18,6 +18,8 @@ import { CircleAreaVisual } from './visuals/CircleAreaVisual';
 import { EquationVisual } from './visuals/EquationVisual';
 import { KatexRenderer } from './KatexRenderer';
 import { SkeletonLoader } from './SkeletonLoader';
+import { getLiveInsight } from '../utils/liveInsight';
+import { getExploreChallenges, ExploreChallenge } from '../utils/exploreChallenges';
 import { useScriptedTimeline } from '../hooks/useScriptedTimeline';
 import { useSpeechNarration } from '../hooks/useSpeechNarration';
 import { NarrationOverlay } from './timeline/NarrationOverlay';
@@ -126,6 +128,23 @@ export const VisualizationPanel: React.FC<VisualizationPanelProps> = ({
   // Effective params and phase for renderer
   const effectiveParams = isTimelineActive ? timeline.interpolatedParams : paramValues;
   const currentPhase = isTimelineActive ? timeline.phase : undefined;
+
+  // Names the one number that carries the idea, and says what it is doing.
+  const liveInsight = getLiveInsight(topic.concept, topic.type, effectiveParams);
+
+  const challenges = getExploreChallenges(topic.concept, topic.type);
+  const [activeChallenge, setActiveChallenge] = useState<ExploreChallenge | null>(null);
+
+  // A challenge written for the preset topics can name values outside the range
+  // Gemini chose for the same concept, so clamp to each slider's own bounds.
+  const applyChallenge = (challenge: ExploreChallenge) => {
+    setActiveChallenge(challenge);
+    topic.params.forEach((param) => {
+      const target = challenge.params[param.id];
+      if (target === undefined) return;
+      onParamChange(param.id, Math.min(param.max, Math.max(param.min, target)));
+    });
+  };
 
   const renderVisualEngine = () => {
     switch (topic.type) {
@@ -408,6 +427,48 @@ export const VisualizationPanel: React.FC<VisualizationPanelProps> = ({
               );
             })}
           </div>
+
+          {liveInsight && (
+            <p
+              aria-live="polite"
+              className={`w-full text-sm leading-relaxed rounded-xl px-3.5 py-2.5 border transition-colors ${
+                liveInsight.isKeyMoment
+                  ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800/60 text-amber-900 dark:text-amber-200'
+                  : 'bg-[#FAF7F2] dark:bg-white/5 border-[#EAE4D9] dark:border-white/10 text-[#3D3A35] dark:text-slate-300'
+              }`}
+            >
+              {liveInsight.text}
+            </p>
+          )}
+
+          {challenges.length > 0 && (
+            <div className="w-full space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] font-semibold uppercase text-[#8F8D88] dark:text-slate-500">
+                  Thử xem điều gì xảy ra
+                </span>
+                {challenges.map((challenge) => (
+                  <button
+                    key={challenge.label}
+                    onClick={() => applyChallenge(challenge)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
+                      activeChallenge?.label === challenge.label
+                        ? 'bg-[#F26207] border-[#F26207] text-white'
+                        : 'bg-white dark:bg-white/5 border-[#EAE4D9] dark:border-white/10 text-[#3D3A35] dark:text-slate-300 hover:border-[#F26207] hover:text-[#F26207]'
+                    }`}
+                  >
+                    {challenge.label}
+                  </button>
+                ))}
+              </div>
+
+              {activeChallenge && (
+                <p className="text-sm leading-relaxed text-[#3D3A35] dark:text-slate-300 rounded-xl px-3.5 py-2.5 bg-orange-50/60 dark:bg-orange-950/20 border border-orange-200/70 dark:border-orange-900/40">
+                  {activeChallenge.hint}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* 3Blue1Brown Scripted Animation Action Button */}
           <button

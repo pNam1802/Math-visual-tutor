@@ -93,7 +93,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         {/* Subtle Mathematical Coordinate Canvas Grid */}
         <ThreeShaderBackground theme={theme} />
 
-        <div className="relative z-10 max-w-5xl mx-auto w-full text-center space-y-8">
+        <div className="relative z-10 max-w-6xl mx-auto w-full text-center space-y-8">
           
           {/* Replit-style Large Display Headline */}
           <motion.div
