@@ -7,6 +7,7 @@ import { createServer as createViteServer } from 'vite';
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = 3000;
 
 app.use(express.json());
@@ -50,20 +51,22 @@ const rateLimitMap = new Map<string, RateLimitEntry>();
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 const RATE_LIMIT_MAX_REQUESTS = 20; // 20 requests per window
 
-function getClientIp(req: express.Request): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string') {
-    return forwarded.split(',')[0].trim();
+// Periodic cleanup of expired rate limit entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of rateLimitMap.entries()) {
+    if (now > value.resetTime) {
+      rateLimitMap.delete(key);
+    }
   }
-  return req.ip || req.socket.remoteAddress || 'unknown-client';
-}
+}, 5 * 60 * 1000);
 
 function checkRateLimit(ip: string): { allowed: boolean; remaining: number; resetInSeconds: number } {
   const now = Date.now();
   const entry = rateLimitMap.get(ip);
 
-  // Periodic pruning of expired entries to prevent memory growth
-  if (rateLimitMap.size > 5000) {
+  // Emergency pruning if map exceeds 1000 entries
+  if (rateLimitMap.size > 1000) {
     for (const [key, value] of rateLimitMap.entries()) {
       if (now > value.resetTime) {
         rateLimitMap.delete(key);
@@ -90,6 +93,62 @@ function checkRateLimit(ip: string): { allowed: boolean; remaining: number; rese
     remaining: RATE_LIMIT_MAX_REQUESTS - entry.count, 
     resetInSeconds: Math.max(1, Math.ceil((entry.resetTime - now) / 1000)) 
   };
+}
+
+// Global daily rate limiting for Gemini calls (max 300 requests per day across app, reset at midnight VN time)
+const GLOBAL_DAILY_MAX_REQUESTS = 300;
+let globalDailyRequestCount = 0;
+let loggedThresholds = { p50: false, p80: false, p100: false };
+
+function getVietnamDateString(): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+  } catch {
+    const vnTime = new Date(Date.now() + 7 * 60 * 60 * 1000);
+    return vnTime.toISOString().slice(0, 10);
+  }
+}
+
+let currentDayVn = getVietnamDateString();
+
+function syncDailyCounter() {
+  const todayVn = getVietnamDateString();
+  if (todayVn !== currentDayVn) {
+    currentDayVn = todayVn;
+    globalDailyRequestCount = 0;
+    loggedThresholds = { p50: false, p80: false, p100: false };
+    console.log(`[DAILY RATE LIMIT] Reset daily request counter for new day (VN time): ${todayVn}`);
+  }
+}
+
+function canCallGeminiGlobal(): boolean {
+  syncDailyCounter();
+  return globalDailyRequestCount < GLOBAL_DAILY_MAX_REQUESTS;
+}
+
+function recordGeminiCall(): number {
+  syncDailyCounter();
+  globalDailyRequestCount += 1;
+
+  // Log warnings when reaching 50%, 80%, and 100% of the threshold
+  const threshold50 = Math.floor(GLOBAL_DAILY_MAX_REQUESTS * 0.5); // 150
+  const threshold80 = Math.floor(GLOBAL_DAILY_MAX_REQUESTS * 0.8); // 240
+  const threshold100 = GLOBAL_DAILY_MAX_REQUESTS; // 300
+
+  if (globalDailyRequestCount >= threshold50 && !loggedThresholds.p50) {
+    console.log(`[DAILY RATE LIMIT] 50% threshold reached: ${globalDailyRequestCount}/${GLOBAL_DAILY_MAX_REQUESTS} requests today.`);
+    loggedThresholds.p50 = true;
+  }
+  if (globalDailyRequestCount >= threshold80 && !loggedThresholds.p80) {
+    console.log(`[DAILY RATE LIMIT] 80% threshold reached: ${globalDailyRequestCount}/${GLOBAL_DAILY_MAX_REQUESTS} requests today.`);
+    loggedThresholds.p80 = true;
+  }
+  if (globalDailyRequestCount >= threshold100 && !loggedThresholds.p100) {
+    console.warn(`[DAILY RATE LIMIT] 100% threshold reached: ${globalDailyRequestCount}/${GLOBAL_DAILY_MAX_REQUESTS} requests today.`);
+    loggedThresholds.p100 = true;
+  }
+
+  return globalDailyRequestCount;
 }
 
 // Fallback intelligent mathematical parser if API key is not yet configured or offline
@@ -342,13 +401,21 @@ app.post('/api/math/analyze', async (req, res) => {
       return;
     }
 
-    // 2. IP-based rate limiting (20 requests per 10 minutes)
-    const clientIp = getClientIp(req);
+    // 2. IP-based rate limiting using Express req.ip (20 requests per 10 minutes)
+    const clientIp = req.ip || 'unknown-client';
     const rateLimit = checkRateLimit(clientIp);
     if (!rateLimit.allowed) {
       const waitMinutes = Math.ceil(rateLimit.resetInSeconds / 60);
       res.status(429).json({
         error: `Bạn đã gửi quá nhiều yêu cầu (tối đa 20 yêu cầu mỗi 10 phút). Vui lòng thử lại sau ${waitMinutes} phút.`
+      });
+      return;
+    }
+
+    // 3. Global daily rate limiting (max 300 Gemini requests per day across app)
+    if (!canCallGeminiGlobal()) {
+      res.status(429).json({
+        error: 'Hệ thống đã đạt giới hạn sử dụng trong ngày, vui lòng quay lại vào ngày mai.'
       });
       return;
     }
@@ -363,7 +430,10 @@ app.post('/api/math/analyze', async (req, res) => {
       return;
     }
 
-    // 3. Prompt Injection Defense: Delimited user question + sanitization
+    // Record the actual Gemini API call in the global daily counter
+    recordGeminiCall();
+
+    // 4. Prompt Injection Defense: Delimited user question + sanitization
     const sanitizedQuery = trimmedQuery.replace(/<\/?user_question>/gi, '');
     const promptText = `Analyze the student's math question or concept provided inside the <user_question> delimiters below:
 
@@ -612,6 +682,8 @@ app.get('/api/diag', async (req, res) => {
     envKeysMatching: string[];
     model: string;
     nodeEnv: string | undefined;
+    dailyRequestsCount: number;
+    dailyLimit: number;
     callOk?: boolean;
     callError?: string | null;
     latencyMs?: number;
@@ -620,7 +692,9 @@ app.get('/api/diag', async (req, res) => {
     keyLength,
     envKeysMatching,
     model,
-    nodeEnv
+    nodeEnv,
+    dailyRequestsCount: globalDailyRequestCount,
+    dailyLimit: GLOBAL_DAILY_MAX_REQUESTS
   };
 
   if (!hasApiKey) {
