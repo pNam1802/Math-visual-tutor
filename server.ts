@@ -549,7 +549,10 @@ All explanations and titles must be in accurate, encouraging, academic Vietnames
         }
       });
     } catch (modelErr) {
-      // Fallback model if primary model hits rate limit or unavailability
+      // Fallback model if primary model hits rate limit or unavailability.
+      // This is a second real API call, so count it too — otherwise the daily
+      // counter under-reports and the true spend can be up to 2x the limit.
+      recordGeminiCall();
       response = await ai.models.generateContent({
         model: 'gemini-3.6-flash',
         contents: promptText,
@@ -668,13 +671,19 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', engine: 'MathVisual Gemini Server' });
 });
 
-// Diagnostic route
+// Diagnostic route.
+// By default this route never touches the Gemini API, so it is free to poll.
+// Pass ?test=1 to make one real Gemini call, which spends quota and is subject
+// to the same IP and daily limits as /api/math/analyze.
 app.get('/api/diag', async (req, res) => {
   const hasApiKey = !!process.env.GEMINI_API_KEY;
   const keyLength = (process.env.GEMINI_API_KEY || '').length;
   const envKeysMatching = Object.keys(process.env).filter(k => /GEMINI|API|KEY/i.test(k));
   const model = 'gemini-3.1-flash-lite';
   const nodeEnv = process.env.NODE_ENV;
+  const runLiveTest = req.query.test === '1';
+  const clientIp = req.ip || 'unknown-client';
+  const forwardedHeader = req.headers['x-forwarded-for'];
 
   const diagData: {
     hasApiKey: boolean;
@@ -684,6 +693,9 @@ app.get('/api/diag', async (req, res) => {
     nodeEnv: string | undefined;
     dailyRequestsCount: number;
     dailyLimit: number;
+    clientIp: string;
+    xForwardedFor: string | undefined;
+    liveTest: boolean;
     callOk?: boolean;
     callError?: string | null;
     latencyMs?: number;
@@ -694,8 +706,19 @@ app.get('/api/diag', async (req, res) => {
     model,
     nodeEnv,
     dailyRequestsCount: globalDailyRequestCount,
-    dailyLimit: GLOBAL_DAILY_MAX_REQUESTS
+    dailyLimit: GLOBAL_DAILY_MAX_REQUESTS,
+    // clientIp is what the rate limiter actually keys on. Compare it against
+    // xForwardedFor to confirm the 'trust proxy' hop count is correct: a spoofed
+    // leading X-Forwarded-For value must NOT show up here.
+    clientIp,
+    xForwardedFor: typeof forwardedHeader === 'string' ? forwardedHeader : undefined,
+    liveTest: runLiveTest
   };
+
+  if (!runLiveTest) {
+    res.json(diagData);
+    return;
+  }
 
   if (!hasApiKey) {
     diagData.callOk = false;
@@ -705,12 +728,28 @@ app.get('/api/diag', async (req, res) => {
     return;
   }
 
+  const rateLimit = checkRateLimit(clientIp);
+  if (!rateLimit.allowed) {
+    diagData.callOk = false;
+    diagData.callError = `Rate limit exceeded for this IP. Retry in ${rateLimit.resetInSeconds}s.`;
+    res.status(429).json(diagData);
+    return;
+  }
+
+  if (!canCallGeminiGlobal()) {
+    diagData.callOk = false;
+    diagData.callError = 'Global daily Gemini limit reached.';
+    res.status(429).json(diagData);
+    return;
+  }
+
   const startTime = Date.now();
   try {
     const ai = getGenAI();
     if (!ai) {
       throw new Error('GoogleGenAI instance could not be initialized');
     }
+    recordGeminiCall();
     await ai.models.generateContent({
       model,
       contents: '2+2=?'
@@ -724,6 +763,7 @@ app.get('/api/diag', async (req, res) => {
     diagData.latencyMs = Date.now() - startTime;
   }
 
+  diagData.dailyRequestsCount = globalDailyRequestCount;
   res.json(diagData);
 });
 
