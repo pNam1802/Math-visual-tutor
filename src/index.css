@@ -147,25 +147,42 @@
   animation: caret 1s steps(1, end) infinite;
 }
 
-/* Cross-fade as the hero showcase swaps from one visual to the next */
-@keyframes heroFadeIn {
+/* Each chat message rises into place as it arrives */
+@keyframes msgIn {
   from {
     opacity: 0;
-    transform: scale(0.985);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0);
   }
 }
 
-.animate-fade-in {
-  animation: heroFadeIn 0.45s ease-out both;
+.animate-msg-in {
+  animation: msgIn 0.35s ease-out both;
+}
+
+/* The "tutor is typing" dots */
+@keyframes dotBounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.animate-dot {
+  animation: dotBounce 1.2s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-caret,
-  .animate-fade-in {
+  .animate-msg-in,
+  .animate-dot {
     animation: none;
   }
 }

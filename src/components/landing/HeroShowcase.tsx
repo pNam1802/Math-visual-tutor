@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowUp, Sparkles, User } from 'lucide-react';
 import { TrigCircleVisual } from '../visuals/TrigCircleVisual';
 import { DerivativeVisual } from '../visuals/DerivativeVisual';
 import { CircleAreaVisual } from '../visuals/CircleAreaVisual';
@@ -10,53 +10,77 @@ interface HeroShowcaseProps {
   onAskQuestion: (question: string) => void;
 }
 
-const TYPE_MS = 45;
-const ERASE_MS = 20;
-const HOLD_MS = 4600;
+/**
+ * The conversation plays out one beat at a time, the way a real exchange does:
+ * the question is typed into the composer, sent, thought about, answered, and
+ * only then does the diagram arrive.
+ */
+type Stage =
+  | 'idle'
+  | 'typing'
+  | 'sent'
+  | 'thinking'
+  | 'answering'
+  | 'visual'
+  | 'clearing';
+
+const TYPE_MS = 55;        // per character, while typing into the composer
+const WORD_MS = 60;        // per word, while the answer streams in
+const IDLE_MS = 700;       // empty composer before typing starts
+const SENT_MS = 550;       // question bubble lands
+const THINKING_MS = 1300;  // the three dots
+const VISUAL_MS = 5200;    // time to actually watch the diagram move
+const CLEAR_MS = 700;      // fade out before the next question
 
 /** One full sweep of a visual's animated parameter. */
 const SWEEP_MS = 7000;
 
 interface ShowcaseItem {
   question: string;
+  answer: string;
   caption: string;
   /** progress is 0..1, one full sweep of this item's parameter. */
   render: (progress: number) => React.ReactNode;
 }
 
-// Every visual here is the same component the app itself renders, so what a
-// visitor watches on the landing page is literally what they get after clicking.
-// All four are plain SVG — deliberately no ThreeJs3DVisual, which would pull
-// three.js into the landing bundle.
+// Every diagram below is the component the app itself renders, so the landing
+// page shows exactly what a visitor gets after clicking. All four are plain SVG
+// — ThreeJs3DVisual is deliberately left out so three.js stays off this path.
 const ITEMS: ShowcaseItem[] = [
   {
     question: 'Tôi muốn hiểu vòng tròn lượng giác',
-    caption: 'Góc quay θ và hình chiếu cos θ, sin θ',
+    answer:
+      'Được! Hãy nhìn điểm M chạy trên đường tròn. Hoành độ của nó chính là cos θ, tung độ là sin θ — hai hình chiếu đó là toàn bộ ý nghĩa của lượng giác.',
+    caption: 'Kéo góc θ để xem sin và cos đổi theo',
     render: (p) => (
-      <TrigCircleVisual angleDeg={Math.round(p * 360)} zoom={0.9} showGrid />
+      <TrigCircleVisual angleDeg={Math.round(p * 360)} zoom={0.78} showGrid />
     )
   },
   {
     question: 'Đạo hàm thực chất là gì?',
-    caption: 'Cát tuyến tiến dần thành tiếp tuyến khi Δx → 0',
+    answer:
+      'Hãy nối hai điểm trên đường cong thành một cát tuyến, rồi kéo chúng lại gần nhau. Khi Δx tiến về 0, cát tuyến trở thành tiếp tuyến — độ dốc của nó chính là đạo hàm.',
+    caption: 'Δx co dần, cát tuyến hoá thành tiếp tuyến',
     render: (p) => {
-      // Ping-pong so Δx shrinks to the tangent, then opens back up.
+      // Ping-pong so Δx closes onto the tangent, then opens back up.
       const swing = p < 0.5 ? p * 2 : (1 - p) * 2;
       return (
-        <DerivativeVisual x0={1} deltaX={0.08 + swing * 1.6} zoom={0.9} showGrid />
+        <DerivativeVisual x0={1} deltaX={0.08 + swing * 1.6} zoom={0.78} showGrid />
       );
     }
   },
   {
     question: 'Vì sao diện tích hình tròn là πr²?',
-    caption: 'Cắt thành n nan quạt rồi ghép lại thành hình chữ nhật',
+    answer:
+      'Cắt hình tròn thành n nan quạt rồi xếp xen kẽ, ta được một hình gần giống chữ nhật. Đáy dài πr, cao r. Càng nhiều lát cắt, nó càng vuông vắn — và diện tích luôn là πr².',
+    caption: 'Số lát cắt tăng dần, hình tiệm cận chữ nhật',
     render: (p) => {
       const swing = p < 0.5 ? p * 2 : (1 - p) * 2;
       return (
         <CircleAreaVisual
           radius={4}
           slices={Math.round(6 + swing * 50)}
-          zoom={0.85}
+          zoom={0.72}
           showGrid
         />
       );
@@ -64,18 +88,20 @@ const ITEMS: ShowcaseItem[] = [
   },
   {
     question: 'Giải phương trình x² − 5x + 6 = 0',
-    caption: 'Đỉnh parabol và hai nghiệm trên trục hoành',
+    answer:
+      'Δ = 25 − 24 = 1 > 0 nên parabol cắt trục hoành tại hai điểm: x₁ = 2 và x₂ = 3. Đỉnh nằm chính giữa hai nghiệm, tại x = 2,5.',
+    caption: 'Đỉnh parabol và hai nghiệm trên trục Ox',
     render: (p) => {
       const swing = p < 0.5 ? p * 2 : (1 - p) * 2;
       return (
-        <QuadraticVisual a={1} b={-5} c={4 + swing * 2} zoom={0.9} showGrid />
+        <QuadraticVisual a={1} b={-5} c={4.4 + swing * 1.6} zoom={0.78} showGrid />
       );
     }
   }
 ];
 
 export const HeroShowcase: React.FC<HeroShowcaseProps> = ({ onAskQuestion }) => {
-  // Readers who ask for less motion get the finished frame instead of the loop.
+  // Readers who ask for less motion get the finished conversation, not the loop.
   const reduceMotion = useMemo(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return false;
     try {
@@ -86,38 +112,83 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({ onAskQuestion }) => 
   }, []);
 
   const [index, setIndex] = useState(0);
-  const [typed, setTyped] = useState(reduceMotion ? ITEMS[0].question : '');
-  const [isErasing, setIsErasing] = useState(false);
+  const [stage, setStage] = useState<Stage>(reduceMotion ? 'visual' : 'idle');
+  const [typed, setTyped] = useState('');
+  const [wordCount, setWordCount] = useState(0);
   const [progress, setProgress] = useState(reduceMotion ? 0.35 : 0);
 
   const item = ITEMS[index];
+  const answerWords = useMemo(() => item.answer.split(' '), [item.answer]);
 
-  // Typewriter: type the question, hold it, erase it, move to the next one.
+  // What is on screen at each beat.
+  const showQuestion = stage !== 'idle' && stage !== 'typing';
+  const showThinking = stage === 'thinking';
+  const showAnswer = stage === 'answering' || stage === 'visual' || stage === 'clearing';
+  const showVisual = stage === 'visual' || stage === 'clearing';
+
+  const streamedAnswer = reduceMotion
+    ? item.answer
+    : answerWords.slice(0, wordCount).join(' ');
+
+  // Advance the conversation. Each stage schedules the next one.
   useEffect(() => {
     if (reduceMotion) return;
 
-    const full = item.question;
     let timer: number;
 
-    if (!isErasing) {
-      if (typed.length < full.length) {
-        timer = window.setTimeout(() => setTyped(full.slice(0, typed.length + 1)), TYPE_MS);
-      } else {
-        timer = window.setTimeout(() => setIsErasing(true), HOLD_MS);
-      }
-    } else if (typed.length > 0) {
-      timer = window.setTimeout(() => setTyped(full.slice(0, typed.length - 1)), ERASE_MS);
-    } else {
-      timer = window.setTimeout(() => {
-        setIndex((prev) => (prev + 1) % ITEMS.length);
-        setIsErasing(false);
-      }, 260);
+    switch (stage) {
+      case 'idle':
+        timer = window.setTimeout(() => setStage('typing'), IDLE_MS);
+        break;
+
+      case 'typing':
+        if (typed.length < item.question.length) {
+          timer = window.setTimeout(
+            () => setTyped(item.question.slice(0, typed.length + 1)),
+            TYPE_MS
+          );
+        } else {
+          // Composer empties as the question is sent.
+          timer = window.setTimeout(() => {
+            setTyped('');
+            setStage('sent');
+          }, 420);
+        }
+        break;
+
+      case 'sent':
+        timer = window.setTimeout(() => setStage('thinking'), SENT_MS);
+        break;
+
+      case 'thinking':
+        timer = window.setTimeout(() => setStage('answering'), THINKING_MS);
+        break;
+
+      case 'answering':
+        if (wordCount < answerWords.length) {
+          timer = window.setTimeout(() => setWordCount((n) => n + 1), WORD_MS);
+        } else {
+          timer = window.setTimeout(() => setStage('visual'), 450);
+        }
+        break;
+
+      case 'visual':
+        timer = window.setTimeout(() => setStage('clearing'), VISUAL_MS);
+        break;
+
+      case 'clearing':
+        timer = window.setTimeout(() => {
+          setIndex((prev) => (prev + 1) % ITEMS.length);
+          setWordCount(0);
+          setStage('idle');
+        }, CLEAR_MS);
+        break;
     }
 
     return () => window.clearTimeout(timer);
-  }, [typed, isErasing, item.question, reduceMotion]);
+  }, [stage, typed, wordCount, item.question, answerWords.length, reduceMotion]);
 
-  // Drives the animated parameter of whichever visual is on screen.
+  // Drives the animated parameter of whichever diagram is on screen.
   useEffect(() => {
     if (reduceMotion) return;
 
@@ -133,70 +204,119 @@ export const HeroShowcase: React.FC<HeroShowcaseProps> = ({ onAskQuestion }) => 
     return () => cancelAnimationFrame(frame);
   }, [reduceMotion, index]);
 
+  const isFading = stage === 'clearing';
+
   return (
-    <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 items-stretch text-left">
+    <div
+      onClick={() => onAskQuestion(item.question)}
+      className="group max-w-4xl mx-auto bg-white dark:bg-[#181A20] border border-[#EAE4D9] dark:border-[#26282E] rounded-2xl shadow-lg shadow-black/5 dark:shadow-none overflow-hidden text-left cursor-pointer hover:border-[#F26207]/60 transition-colors"
+    >
 
-      {/* Left: the question, typed out. Not an input — the whole card is the CTA. */}
-      <button
-        type="button"
-        onClick={() => onAskQuestion(item.question)}
-        aria-label={`Mở mô phỏng cho câu hỏi: ${item.question}`}
-        className="group relative flex flex-col justify-between bg-white dark:bg-[#1A1C23] border-2 border-[#F26207]/40 rounded-2xl p-5 sm:p-6 min-h-[220px] shadow-md shadow-orange-500/5 dark:shadow-none hover:border-[#F26207] focus-visible:border-[#F26207] focus-visible:ring-2 focus-visible:ring-[#F26207]/30 outline-none transition-all cursor-pointer text-left"
-      >
-        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-[#F26207]">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Học sinh hỏi</span>
+      {/* Window chrome */}
+      <div className="px-4 py-2.5 border-b border-[#EAE4D9] dark:border-[#26282E] bg-[#FAF7F2] dark:bg-[#121316] flex items-center gap-2.5">
+        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+        <span className="font-mono text-[11px] font-semibold text-[#1C1B1A] dark:text-slate-200">
+          MathVisual Tutor
+        </span>
+        <div className="ml-auto flex gap-1.5" aria-hidden="true">
+          {ITEMS.map((entry, i) => (
+            <span
+              key={entry.question}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === index ? 'w-5 bg-[#F26207]' : 'w-1.5 bg-[#EAE4D9] dark:bg-white/15'
+              }`}
+            />
+          ))}
         </div>
+      </div>
 
-        <p className="flex-1 flex items-center text-lg sm:text-xl md:text-2xl font-semibold text-[#1C1B1A] dark:text-white leading-snug py-4">
-          <span>
-            {typed}
-            {!reduceMotion && (
+      {/* Transcript. Fixed height and bottom-aligned so the page never jumps as
+          messages arrive, and so the conversation grows upward like a real one. */}
+      <div
+        aria-live="polite"
+        className={`flex flex-col justify-end gap-3 px-4 sm:px-5 py-4 min-h-[460px] sm:min-h-[500px] overflow-hidden bg-[#FAF7F2]/50 dark:bg-[#0F1219] transition-opacity duration-500 ${
+          isFading ? 'opacity-0' : 'opacity-100'
+        }`}
+      >
+
+        {/* Student's question */}
+        {showQuestion && (
+          <div className="flex items-start gap-2.5 justify-end animate-msg-in">
+            <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-[#F26207] text-white px-3.5 py-2.5 text-sm leading-relaxed">
+              {item.question}
+            </div>
+            <div className="w-7 h-7 rounded-lg bg-[#EAE4D9] dark:bg-white/10 text-[#5E5D59] dark:text-slate-300 flex items-center justify-center shrink-0">
+              <User className="w-3.5 h-3.5" />
+            </div>
+          </div>
+        )}
+
+        {/* Tutor's turn */}
+        {(showThinking || showAnswer) && (
+          <div className="flex items-start gap-2.5 animate-msg-in">
+            <div className="w-7 h-7 rounded-lg bg-[#F26207] text-white flex items-center justify-center shrink-0">
+              <Sparkles className="w-3.5 h-3.5" />
+            </div>
+
+            <div className="max-w-[94%] rounded-2xl rounded-bl-sm bg-white dark:bg-white/5 border border-[#EAE4D9] dark:border-white/10 px-3.5 py-2.5 space-y-3">
+              {showThinking ? (
+                <div className="flex gap-1.5 py-1" aria-label="Đang soạn câu trả lời">
+                  <span className="w-2 h-2 rounded-full bg-[#F26207]/70 animate-dot" />
+                  <span className="w-2 h-2 rounded-full bg-[#F26207]/70 animate-dot [animation-delay:0.18s]" />
+                  <span className="w-2 h-2 rounded-full bg-[#F26207]/70 animate-dot [animation-delay:0.36s]" />
+                </div>
+              ) : (
+                <p className="text-sm leading-relaxed text-[#1C1B1A] dark:text-slate-200">
+                  {streamedAnswer}
+                </p>
+              )}
+
+              {/* The diagram arrives last, inside the reply */}
+              {showVisual && (
+                <div className="animate-msg-in rounded-xl border border-[#EAE4D9] dark:border-white/10 bg-[#FAF7F2] dark:bg-[#0B0E14] overflow-hidden">
+                  <div className="h-[250px] sm:h-[290px] flex items-center justify-center">
+                    {item.render(progress)}
+                  </div>
+                  <p className="px-3 py-2 border-t border-[#EAE4D9] dark:border-white/10 text-[11px] text-[#5E5D59] dark:text-slate-400">
+                    {item.caption}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      {/* Composer. Not a real input — the question types itself here, then sends. */}
+      <div className="px-4 sm:px-5 py-3 border-t border-[#EAE4D9] dark:border-[#26282E] bg-white dark:bg-[#181A20]">
+        <div className="flex items-center gap-2 rounded-xl border border-[#EAE4D9] dark:border-white/10 bg-[#FAF7F2] dark:bg-white/5 px-3.5 py-2.5 group-hover:border-[#F26207]/50 transition-colors">
+          <p className="flex-1 text-sm text-[#1C1B1A] dark:text-slate-200 truncate">
+            {typed || (
+              <span className="text-[#78756F] dark:text-slate-500">
+                Hỏi bất kỳ điều gì về toán…
+              </span>
+            )}
+            {stage === 'typing' && (
               <span
                 aria-hidden="true"
-                className="inline-block w-[2px] h-[1.1em] translate-y-[0.18em] ml-0.5 bg-[#F26207] animate-caret"
+                className="inline-block w-[2px] h-[1.05em] translate-y-[0.16em] ml-0.5 bg-[#F26207] animate-caret"
               />
             )}
-          </span>
-        </p>
+          </p>
 
-        <div className="flex items-center justify-between gap-3 pt-3 border-t border-[#EAE4D9] dark:border-white/10">
-          <div className="flex gap-1.5" aria-hidden="true">
-            {ITEMS.map((entry, i) => (
-              <span
-                key={entry.question}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  i === index ? 'w-6 bg-[#F26207]' : 'w-1.5 bg-[#EAE4D9] dark:bg-white/15'
-                }`}
-              />
-            ))}
-          </div>
-
-          <span className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#F26207]">
-            Xem mô phỏng
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAskQuestion(item.question);
+            }}
+            aria-label={`Mở mô phỏng cho câu hỏi: ${item.question}`}
+            className="w-8 h-8 rounded-lg bg-[#F26207] hover:bg-[#D95300] text-white flex items-center justify-center shrink-0 transition-colors cursor-pointer"
+          >
+            <ArrowUp className="w-4 h-4" />
+          </button>
         </div>
-      </button>
-
-      {/* Right: the answer, drawn by the app's own visual components. */}
-      <div className="bg-white dark:bg-[#181A20] border border-[#EAE4D9] dark:border-[#26282E] rounded-2xl overflow-hidden shadow-sm flex flex-col min-h-[220px]">
-        <div className="px-4 py-2.5 border-b border-[#EAE4D9] dark:border-[#26282E] bg-[#FAF7F2] dark:bg-[#121316] flex items-center gap-2.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-mono text-[11px] font-semibold text-[#1C1B1A] dark:text-slate-200">
-            Live Math Simulation
-          </span>
-        </div>
-
-        <div className="flex-1 flex items-center justify-center bg-[#FAF7F2]/60 dark:bg-[#0F1219] p-2 min-h-[240px] sm:min-h-[280px]">
-          <div key={index} className="w-full h-full animate-fade-in">
-            {item.render(progress)}
-          </div>
-        </div>
-
-        <p className="px-4 py-2.5 border-t border-[#EAE4D9] dark:border-[#26282E] text-[11px] sm:text-xs text-[#5E5D59] dark:text-slate-400">
-          {item.caption}
-        </p>
       </div>
 
     </div>
