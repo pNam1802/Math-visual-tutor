@@ -1,5 +1,7 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
+import zlib from 'zlib';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
@@ -777,8 +779,68 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    const assetsRoot = path.join(distPath, 'assets');
+
+    // Vite fingerprints every file under /assets with a content hash, so a given
+    // URL always maps to the same bytes and is safe to cache for a year.
+    // index.html is the opposite: it must revalidate, or users stay pinned to an
+    // old build forever.
+    const IMMUTABLE = 'public, max-age=31536000, immutable';
+
+    // woff2, png and friends are already compressed; gzipping them burns CPU for
+    // nothing. ttf is not — KaTeX ships several and they shrink a lot.
+    const COMPRESSIBLE = /\.(js|mjs|css|svg|json|map|ttf|otf|txt|xml)$/i;
+
+    // dist/assets is a small, fixed set of files, so gzipping each one on first
+    // request and holding the buffer is cheaper than recompressing on every hit.
+    const gzipCache = new Map<string, Buffer>();
+
+    app.use('/assets', (req, res, next) => {
+      res.setHeader('Cache-Control', IMMUTABLE);
+      res.setHeader('Vary', 'Accept-Encoding');
+
+      const acceptsGzip = /\bgzip\b/.test(req.headers['accept-encoding'] || '');
+      const isReadMethod = req.method === 'GET' || req.method === 'HEAD';
+      if (!isReadMethod || !acceptsGzip || !COMPRESSIBLE.test(req.path)) {
+        next();
+        return;
+      }
+
+      const filePath = path.join(assetsRoot, path.normalize(req.path));
+      // Refuse anything that resolves outside dist/assets.
+      if (!filePath.startsWith(assetsRoot)) {
+        res.status(404).end();
+        return;
+      }
+
+      let body = gzipCache.get(filePath);
+      if (!body) {
+        try {
+          body = zlib.gzipSync(fs.readFileSync(filePath), { level: 9 });
+          gzipCache.set(filePath, body);
+        } catch {
+          // Missing or unreadable: let express.static produce the 404.
+          next();
+          return;
+        }
+      }
+
+      res.setHeader('Content-Encoding', 'gzip');
+      res.setHeader('Content-Length', body.length);
+      res.type(path.extname(req.path));
+      res.end(body);
+    });
+
+    // Serve ONLY dist/assets, never dist itself. The build also writes
+    // server.cjs and server.cjs.map into dist, and serving the whole directory
+    // published the compiled backend plus a sourcemap containing the original
+    // server.ts at /server.cjs and /server.cjs.map.
+    // index: false so that "/" falls through to the catch-all below and picks up
+    // the no-cache header instead of being served straight from the static dir.
+    app.use('/assets', express.static(assetsRoot, { index: false }));
+
     app.get('*', (req, res) => {
+      res.setHeader('Cache-Control', 'no-cache');
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
